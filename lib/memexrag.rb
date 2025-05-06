@@ -22,6 +22,7 @@ end
 require_relative 'memexrag/version'
 require_relative 'memexrag/config'
 require_relative 'memexrag/logging'
+require_relative 'memexrag/clients/langfuse_client'
 require_relative 'memexrag/database'
 require_relative 'memexrag/command'
 
