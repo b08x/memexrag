@@ -1,0 +1,30 @@
+# ruby_llm_config.yaml
+
+# Provider API Keys
+openai_api_key: <%= ENV['OPENAI_API_KEY'] %>
+anthropic_api_key: <%= ENV['ANTHROPIC_API_KEY'] %>
+gemini_api_key: <%= ENV['GEMINI_API_KEY'] %>
+deepseek_api_key: <%= ENV['DEEPSEEK_API_KEY'] %>
+# openrouter_api_key: <%= ENV['OPENROUTER_API_KEY'] %>
+# ollama_api_base: <%= ENV['OLLAMA_API_BASE'] %>
+
+# AWS Bedrock Credentials
+bedrock_api_key: <%= ENV['AWS_ACCESS_KEY_ID'] %>
+bedrock_secret_key: <%= ENV['AWS_SECRET_ACCESS_KEY'] %>
+bedrock_region: <%= ENV['AWS_REGION'] %>
+bedrock_session_token: <%= ENV['AWS_SESSION_TOKEN'] %>
+
+# Custom OpenAI Endpoint
+openai_api_base: <%= ENV['OPENAI_API_BASE'] %>
+
+# Default Models
+default_model: gemini-2.0-flash
+default_embedding_model: text-embedding-004
+default_image_model: imagen-3.0-generate-002
+
+# Connection Settings
+request_timeout: 120
+max_retries: 3
+retry_interval: 0.5
+retry_backoff_factor: 2
+retry_interval_randomness: 0.5

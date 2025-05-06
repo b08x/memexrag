@@ -1,0 +1,9 @@
+doctype html
+html
+  head
+    title Trails
+  body
+    h1 Trails
+    ul
+      - @trails.each do |trail|
+        li = "#{trail.name} (Status: #{trail.status}) - Created at: #{trail.created_at}"

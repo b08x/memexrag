@@ -1,0 +1,7 @@
+google_search:
+  api_key: 'your-google-api-key'
+  cx: 'your-custom-search-id'
+
+audio_transcription:
+  provider: 'google' # or 'aws', 'azure'
+  api_key: 'your-transcription-api-key'
