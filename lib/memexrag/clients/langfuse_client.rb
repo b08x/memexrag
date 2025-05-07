@@ -98,13 +98,12 @@ module LangfuseClient
         end
       end
 
-      # Determine prompt type and content based on the Python object's attributes
-      # This logic assumes py_prompt_obj could be a full Prompt (TextPrompt/ChatPrompt) or a PromptMeta
-
-      # Default values
       prompt_type_str = 'text'
       prompt_content_val = 'Content not directly available'
       config_val = {}
+
+      # Get Python class name correctly
+      py_class_name = py_prompt_obj.__class__.__name__.to_s
 
       prompt_type_str = py_prompt_obj.type.to_s if py_prompt_obj.respond_to?(:type) && py_prompt_obj.type
 
@@ -119,12 +118,9 @@ module LangfuseClient
 
       config_val = to_ruby_hash.call(py_prompt_obj.config) if py_prompt_obj.respond_to?(:config) && py_prompt_obj.config
 
-      # Adjust for PromptMeta structure if necessary (often returned by list operations)
-      if py_prompt_obj.class_name.to_s.end_with?('PromptMeta') && py_prompt_obj.respond_to?(:last_config) && py_prompt_obj.last_config
+      if py_class_name == 'PromptMeta' && py_prompt_obj.respond_to?(:last_config) && py_prompt_obj.last_config
         meta_config = to_ruby_hash.call(py_prompt_obj.last_config)
-        config_val = meta_config # Override with last_config for Meta
-        # Try to infer type and content from last_config if not directly available
-        # This is a heuristic as PromptMeta doesn't store full prompt details directly
+        config_val = meta_config
         inferred_type = meta_config['type']&.to_s
         inferred_content_raw = meta_config['prompt']
 
@@ -136,13 +132,14 @@ module LangfuseClient
                                else
                                  inferred_content_raw.to_s
                                end
+        elsif prompt_type_str == 'chat'
+          prompt_content_val = []
         end
       end
 
       version_val = py_prompt_obj.respond_to?(:version) && !py_prompt_obj.version.nil? ? py_prompt_obj.version.to_i : 0
-      # For PromptMeta, 'versions' is an array of version numbers. 'version' might be the latest.
-      if py_prompt_obj.class_name.to_s.end_with?('PromptMeta') && py_prompt_obj.respond_to?(:versions) && py_prompt_obj.versions.respond_to?(:to_a) && !py_prompt_obj.versions.to_a.empty?
-        version_val = py_prompt_obj.versions.to_a.map(&:to_i).max || 0 # Get the highest version number
+      if py_class_name == 'PromptMeta' && py_prompt_obj.respond_to?(:versions) && py_prompt_obj.versions.respond_to?(:to_a) && !py_prompt_obj.versions.to_a.empty?
+        version_val = py_prompt_obj.versions.to_a.map(&:to_i).max || 0
       end
 
       commit_msg_val = py_prompt_obj.respond_to?(:commit_message) && py_prompt_obj.commit_message ? py_prompt_obj.commit_message.to_s : nil
@@ -159,22 +156,25 @@ module LangfuseClient
         raw_python_object: py_prompt_obj
       )
     rescue PyCall::PyError => e
-      raise LangfuseClient::Error, "Failed to convert Python prompt object due to PyCall error: #{e.message}. Attributes: #{begin
-        py_prompt_obj.dir
+      py_obj_dir_str = begin
+        py_prompt_obj.dir.to_a.join(', ')
       rescue StandardError
         'N/A'
-      end}"
+      end
+      raise LangfuseClient::Error, "Failed to convert Python prompt object due to PyCall error: #{e.message}. Attributes: #{py_obj_dir_str}"
     rescue NoMethodError => e
+      py_obj_class_name_str = begin
+        py_prompt_obj.__class__.__name__.to_s
+      rescue StandardError
+        'N/A'
+      end
+      py_obj_dir_str = begin
+        py_prompt_obj.dir.to_a.join(', ')
+      rescue StandardError
+        'N/A'
+      end
       raise LangfuseClient::Error,
-            "Python prompt object missing expected attribute for conversion: #{e.message}. Object type: #{begin
-              py_prompt_obj.class_name
-            rescue StandardError
-              'N/A'
-            end}. Attributes: #{begin
-              py_prompt_obj.dir
-            rescue StandardError
-              'N/A'
-            end}"
+            "Python prompt object missing expected attribute for conversion: #{e.message}. Object type: #{py_obj_class_name_str}. Attributes: #{py_obj_dir_str}"
     end
   end
 
@@ -227,6 +227,7 @@ module LangfuseClient
       }
       sdk_prompt_params[:commit_message] = commit_message if commit_message
 
+      # The Langfuse Python SDK's Langfuse class has a create_prompt method directly.
       py_created_prompt = @py_langfuse_client.create_prompt(**sdk_prompt_params)
       Prompt.from_python(py_created_prompt)
     rescue PyCall::PyError => e
@@ -240,11 +241,8 @@ module LangfuseClient
     end
 
     def get_prompt(name:, version: nil, label: nil)
-      sdk_params = { name: name }
-      sdk_params[:version] = version.to_i if version
-      sdk_params[:label] = label if label
-
-      py_prompt_obj = @py_langfuse_client.get_prompt(**sdk_params)
+      # The Langfuse Python SDK's Langfuse class has a get_prompt method directly
+      py_prompt_obj = @py_langfuse_client.get_prompt(name: name, version: version, label: label)
       Prompt.from_python(py_prompt_obj)
     rescue PyCall::PyError => e
       error_message_lower = e.message.to_s.downcase
@@ -268,15 +266,13 @@ module LangfuseClient
       sdk_params[:limit] = limit.to_i if limit
       sdk_params[:page] = page.to_i if page
 
-      prompts_api = @py_langfuse_client.prompts
-      raise LangfuseClient::Error, "Langfuse Python SDK structure error: '.prompts.list()' method not found." unless prompts_api && prompts_api.respond_to?(:list)
+      # Corrected: Access list method via .api.prompts on the Langfuse client instance
+      py_response = @py_langfuse_client.api.prompts.list(**sdk_params)
 
-      py_response = prompts_api.list(**sdk_params)
       raise LangfuseClient::Error, "Langfuse Python SDK's prompt list response is malformed: missing 'data' attribute." unless py_response.respond_to?(:data)
 
       py_prompt_meta_list = py_response.data
       py_prompt_meta_list.to_a.map do |py_prompt_meta|
-        # Prompt.from_python is now more aware of PromptMeta structure
         Prompt.from_python(py_prompt_meta)
       end
     rescue PyCall::PyError => e
@@ -287,26 +283,15 @@ module LangfuseClient
       raise LangfuseClient::Error, "An unexpected Ruby error occurred while listing prompts: #{e.class} - #{e.message}\nBacktrace:\n#{e.backtrace.join("\n")}"
     end
 
-    # Checks if a prompt with the given name exists in Langfuse.
-    #
-    # @param name [String] The name of the prompt to check.
-    # @return [Boolean] True if the prompt exists, false otherwise.
-    # @raise [LangfuseClient::AuthenticationError] If authentication fails.
-    # @raise [LangfuseClient::LangfuseApiError] For API errors during the check.
-    # @raise [LangfuseClient::Error] For other client-side errors.
     def prompt_exists?(name:)
       raise ArgumentError, 'Prompt name cannot be empty.' if name.nil? || name.strip.empty?
 
       begin
-        prompts = list_prompts(name: name, limit: 1)
-        !prompts.empty?
+        get_prompt(name: name)
+        true
       rescue NotFoundError
-        # This should ideally not be reached if list_prompts returns empty array for no results.
-        # But as a safeguard, if list_prompts were to raise NotFoundError for a filtered list that's empty.
         false
       rescue LangfuseClient::Error => e
-        # Re-raise significant errors. If the check itself fails due to an API or connection issue,
-        # it's better to let the caller know the check couldn't be performed.
         raise LangfuseClient::Error, "Failed to check prompt existence for '#{name}' due to: #{e.message}"
       end
     end
@@ -330,13 +315,11 @@ module LangfuseClient
         py_traceback_mod = PyCall.import_module('traceback')
         py_exc_type = py_error.respond_to?(:type) ? py_error.type : py_error.class.to_s
         py_exc_value = py_error.respond_to?(:value) ? py_error.value : py_error
-
         formatted_list = py_traceback_mod.format_exception(py_exc_type, py_exc_value, tb_obj)
         return formatted_list.to_a.join('') if formatted_list.respond_to?(:to_a)
       rescue PyCall::PyError, StandardError
         # Fallback
       end
-
       tb_obj.to_s
     rescue StandardError
       'Could not retrieve Python traceback due to an unexpected Ruby error.'
