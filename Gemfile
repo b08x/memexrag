@@ -72,3 +72,4 @@ gem 'tty-tree'
 gem 'amazing_print'
 gem 'google_custom_search_api'
 gem 'google_search_results'
+gem "langfuse", "~> 0.1.1"

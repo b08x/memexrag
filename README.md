@@ -2,7 +2,7 @@
 
 ## 🧠 Project Vision
 
-**Memex-RAG** is a Ruby-based intelligent diagnostic system that combines Retrieval-Augmented Generation (RAG) with Vannevar Bush's visionary Memex concept to revolutionize IT support. By fusing semantic retrieval with associative memory trails, we create a system that doesn't just find relevant documents—it understands the hidden connections between incidents, following paths of associated knowledge much like the human mind.
+**Memex-RAG** is a Ruby-based intelligent diagnostic system that combines Retrieval-Augmented Generation (RAG) with Vannevar Bush's visionary Memex concept to revolutionize IT support. By fusing semantic retrieval with associative memory trails, we create a system that understands hidden connections between incidents, mirroring human cognitive patterns.
 
 > "Wholly new forms of encyclopedias will appear, ready made with a mesh of associative trails..."
 > — *Vannevar Bush, "As We May Think"*
@@ -11,205 +11,111 @@
 
 For IT support teams, Memex-RAG will:
 
-1. **Reduce Resolution Time**: Cut MTTR by surfacing hidden connections between similar past incidents
-2. **Enhance Knowledge Discovery**: Reveal non-obvious relationships across the knowledge base
-3. **Improve Diagnostic Accuracy**: Provide context-rich information beyond simple keyword searches
-4. **Preserve Institutional Knowledge**: Capture the associative paths expert technicians follow
-5. **Scale Technical Expertise**: Allow junior staff to leverage senior-level diagnostic patterns
+- **Reduce MTTR by 40%** through contextual incident linking
+- **Boost first-contact resolution by 25%** with AI-powered diagnostics
+- **Cut knowledge base search time by 50%** via associative trails
 
 ## 🔄 System Architecture
 
-Memex-RAG combines sophisticated Ruby components with an accessible FlowiseAI interface:
+Memex-RAG combines Ruby components with modern ML infrastructure:
 
-![Architecture Diagram](https://via.placeholder.com/800x500?text=Memex-RAG+Architecture)
+![Architecture Diagram](./docs/assets/architecture.png) *[Draft available in /docs]*
 
 ### Core Components
 
 #### Ruby Backend
-- **ContextualProcessor**: Intelligent document ingestion and analysis
-- **Vector Storage**: Semantic search using Redis Vector Search
-- **MemexTrail System**: Associative memory trails connecting related incidents
-- **WorkflowAgent**: Orchestrates diagnostic flows using Jongleur DAGs
-- **LLM Integration**: Leverages large language models via ruby_llm
 
-#### FlowiseAI Frontend
-- User-friendly interfaces for IT specialists
-- Multi-channel input processing
-- Visual presentation of diagnostic results
-- Integration with existing IT systems
+- **MemexTrail System**: Graph-based connections between incidents (stored in RedisGraph)
+- **Hybrid Retrieval**: Combines vector search (Redis) + graph traversal
+- **Langfuse Integration**: Version-controlled prompts with PyCall bridge
 
-#### Dual-Interface Design
-- **CLI Access**: Direct terminal interface for developers and automation
-- **API Bridge**: Connects Ruby backend with FlowiseAI frontend
-- **Web UI**: FlowiseAI-powered interface for end users
+#### Interface Layer
 
-## 🛣️ Development Roadmap
+- **CLI**: Incident investigation workflows via Thor
+- **REST API**: Sinatra endpoints for integration
 
-Our development follows a phased approach to deliver value incrementally:
+## 🛣️ Development Roadmap (Q3 2024)
 
-### Phase 1: Foundation (Weeks 1-3)
-- Establish core Ruby framework architecture
-- Implement basic document processing and vector storage
-- Create simple Memex trail data model
-- Build essential CLI functionality
-- Develop minimal API endpoints
+### Phase 1: Foundation (Sprint 1-2)
 
-### Phase 2: Core Functionality (Weeks 4-6)
-- Enhance document processing with advanced NLP
-- Implement comprehensive Memex trail traversal
-- Integrate LLM-powered diagnostics
-- Create basic FlowiseAI integration
-- Establish development environment and testing framework
+- Implement CLI with `thor` for:
+  - Incident ingestion (`memex ingest <file>`)
+  - Basic trail visualization (`memex trace <incident_id>`)
+- Redis vector search POC
+- Langfuse prompt registry setup
 
-### Phase 3: Integration & Enhancement (Weeks 7-9)
-- Develop rich FlowiseAI user interfaces
-- Implement multi-channel support
-- Enhance diagnostic capabilities
-- Create comprehensive testing suite
-- Build deployment pipeline
+### Phase 2: Core Features (Sprint 3-4)
 
-### Phase 4: Production Readiness (Weeks 10-12)
-- Optimize performance
-- Implement security hardening
-- Complete documentation
-- Deploy production environment
-- Train support team
+- NLP pipeline with ruby-spacy (entity extraction)
+- LLM diagnostic chains via ruby_llm
+- API endpoints for:
+  - `/incidents/search` (semantic + graph)
+  - `/trails` (trail management)
+
+### Phase 3: Optimization (Sprint 5-6)
+
+- Performance benchmarking
+- RBAC for API endpoints
+- Automated testing suite (RSpec + Cypress)
 
 ## 📊 Success Metrics
 
-We will measure success through:
+| Category          | Metric                          | Target  | Measurement Method               |
+|-------------------|---------------------------------|---------|-----------------------------------|
+| Technical         | API latency (p95)              | <500ms  | Prometheus monitoring            |
+| Business          | MTTR reduction                 | 40%     | Jira incident analysis           |
+| User Experience   | CLI adoption rate              | >75%    | Usage telemetry                  |
 
-1. **Technical Metrics**
-   - Average diagnostic response time < 30 seconds
-   - Retrieval precision > 85%
-   - System uptime > 99.5%
-   - API response time < 500ms
-
-2. **Business Metrics**
-   - 40% reduction in MTTR for complex IT issues
-   - 30% decrease in escalation rate
-   - 25% increase in first-contact resolution
-   - 50% reduction in time spent searching knowledge base
-
-3. **User Experience Metrics**
-   - User satisfaction score > 4.2/5
-   - 80% of users report improved diagnostic quality
-   - Adoption rate > 75% among support staff
-
-## 💡 Technical Innovations
-
-Memex-RAG introduces several novel approaches:
+## 💡 Key Technical Innovations
 
 ### Associative Trail Intelligence
-Unlike traditional RAG systems that rely solely on semantic similarity, our MemexTrail system captures the associative paths between incidents, creating a "train of thought" that mimics expert technicians' problem-solving patterns.
 
-### Context-Aware Processing
-The system understands IT-specific entities and their relationships, distinguishing between symptoms, causes, systems, and solutions to build a structured knowledge graph.
+- **Contextual Linking**: Auto-creates trails based on:
+  - Shared root causes
+  - Temporal patterns
+  - Component dependencies
+- **Expert Validation**: L3 technicians can curate/override trails
 
-### Hybrid Retrieval Strategy
-Combines vector-based semantic search with graph traversal for a more comprehensive understanding of complex problems.
+### Langfuse Integration
 
-### Ruby-First Architecture
-Leverages Ruby's elegant syntax and rich ecosystem while maintaining modern ML capabilities through carefully selected gems.
+- Dynamic prompt versioning
+- A/B testing of diagnostic strategies
+- Audit trail for AI decisions
 
-## 👥 Stakeholders & Users
+## 👥 Stakeholders
 
-### Primary Users
-- **L1/L2 Support Technicians**: Daily users for incident diagnosis
-- **L3 Specialists**: Contributors to knowledge base and trail validation
-- **IT Managers**: Oversight and performance monitoring
-
-### Key Stakeholders
-- **CIO/IT Director**: Executive sponsor
-- **Knowledge Management Team**: Content governance
-- **Operations Team**: System maintenance and monitoring
-
-## 📋 Development Plan
-
-Our approach combines agile development with structured milestones:
-
-### Sprint Cadence
-- 2-week sprints
-- Weekly demos to stakeholders
-- Mid-sprint technical reviews
-
-### Key Milestones
-
-#### Milestone 1: Functional PoC (End of Sprint 3)
-Demonstrate end-to-end processing of a single incident type with basic CLI and API functionality and simple FlowiseAI integration.
-
-#### Milestone 2: Enhanced System (End of Sprint 6)
-Support for multiple incident types, advanced Memex trail capabilities, improved FlowiseAI interface, and comprehensive testing.
-
-#### Milestone 3: Production-Ready (End of Sprint 9)
-Multi-channel integration, advanced diagnostics, full documentation, performance optimization, and deployment infrastructure.
-
-#### Milestone 4: Extended Capabilities (End of Sprint 12)
-Advanced analytics, learning from feedback, additional integrations, and enterprise features.
+| Role               | Responsibilities                          |
+|--------------------|-------------------------------------------|
+| L1 Technicians     | Daily system users, feedback providers    |
+| L3 Specialists     | Trail validation, knowledge base curation |
+| DevOps             | Infrastructure scaling, monitoring        |
 
 ## 🛠️ Technology Stack
 
-### Ruby Core
-- **ruby-spacy**: Natural language processing
-- **ruby_llm**: Large language model integration
-- **ohm**: Redis object-hash mapping
-- **jongleur**: Workflow orchestration
-- **Langchain::Vectorsearch::Redis**: Vector database operations
+| Component         | Choice                      | Rationale                             |
+|-------------------|-----------------------------|---------------------------------------|
+| NLP               | ruby-spacy                  | Python interoperability via PyCall    |
+| Vector DB         | Redis                       | Low-latency, existing infra alignment|
+| Orchestration     | Jongleur                    | Ruby-native DAG support               |
 
-### Interface & Integration
-- **Sinatra**: Lightweight API framework
-- **Thor**: CLI framework
-- **FlowiseAI**: User interface and workflow builder
+## 📚 Resources
 
-### Infrastructure
-- **Redis**: Primary database with vector search capabilities
-- **Docker**: Containerization
-- **GitHub Actions**: CI/CD pipeline
+- [API Spec](https://github.com/yourorg/memex-rag/blob/main/docs/api-spec.md) (Live Swagger)
+- [Contribution Guide](./CONTRIBUTING.md) (Includes testing standards)
+- [Roadmap Details](./docs/roadmap.md) (Quarterly milestones)
 
-## 📚 Resources & References
+## ⚠️ Risk Mitigation
 
-### Technical Resources
-- [Ruby-Spacy Documentation](https://example.com)
-- [Ruby LLM GitHub Repository](https://example.com)
-- [Vannevar Bush's "As We May Think" Essay](https://www.theatlantic.com/magazine/archive/1945/07/as-we-may-think/303881/)
-- [Redis Vector Search Documentation](https://redis.io/docs/stack/search/reference/vectors/)
+1. **LLM Hallucinations**:
+   - Implement confidence scoring
+   - Human-in-the-loop validation
 
-### Project Resources
-- [Project Backlog](./docs/backlog.md)
-- [API Specification](./docs/api-spec.md)
-- [Development Environment Setup](./docs/dev-setup.md)
-- [Test Plan](./docs/test-plan.md)
-
-## 🔮 Future Opportunities
-
-While our initial focus is on IT diagnostics, the Memex-RAG architecture opens doors to future applications:
-
-1. **Predictive Maintenance**: Anticipating failures before they occur
-2. **Self-Healing Systems**: Automated remediation of common issues
-3. **Cross-Domain Knowledge**: Extending beyond IT to other technical domains
-4. **Collaborative Trails**: Multiple experts contributing to knowledge paths
-5. **Learning System**: Evolving trails based on usage patterns and outcomes
-
-## 👣 Next Steps
-
-### Immediate Actions
-1. Finalize technology stack decisions
-2. Set up development environment
-3. Begin Sprint 1 with core foundation tasks
-4. Schedule regular stakeholder reviews
-
-### Getting Involved
-- **Developers**: See [Contributing Guide](./CONTRIBUTING.md)
-- **Testers**: Review the [Test Plan](./docs/test-plan.md)
-- **Subject Matter Experts**: Help define initial knowledge domains
+2. **Performance Scaling**:
+   - Redis cluster sharding plan
+   - Async processing with Sidekiq
 
 ---
 
-*"The human mind... operates by association. With one item in its grasp, it snaps instantly to the next that is suggested by the association of thoughts, in accordance with some intricate web of trails carried by the cells of the brain."* — Vannevar Bush
-
----
-
-**Project Status**: Planning Phase  
-**Start Date**: [Planned Start Date]  
-**Target Completion**: [Target Completion Date]  
-**Project Lead**: [Your Name]
+**Project Status**: Active Development (Sprint 2)  
+**Next Release**: 2024-06-30 (Phase 1 Feature Complete)  
+**Lead Maintainer**: [Your Name] | [Contact Info]
