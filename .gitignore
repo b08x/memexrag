@@ -24,3 +24,8 @@ Gemfile.lock
 .solargraph.yml
 
 Gemfile.lock
+
+/.venv/
+/vendor/
+/examples/
+/docs/

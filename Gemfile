@@ -4,6 +4,9 @@ group :development, :test do
   gem 'debug_me'
   gem 'pry-stack_explorer'
   gem 'rspec', '~> 3.10'
+  gem 'reline'
+  gem 'rdoc'
+  gem 'psych'
   gem 'rubocop'
   gem 'rubocop-minitest'
   gem 'rubocop-packaging'
@@ -15,12 +18,14 @@ group :development, :test do
   gem 'solargraph'
 end
 
+gem 'pry'
+gem 'pry-doc'
 # Web framework and server
 gem 'sinatra'
-gem 'sinatra-contrib'
-gem 'puma'
-gem 'rack'
-gem 'rackup', '~> 2.2'
+# gem 'sinatra-contrib'
+# gem 'puma'
+# gem 'rack'
+# gem 'rackup', '~> 2.2'
 
 # Asset pipeline
 gem 'algorithms'
@@ -44,6 +49,7 @@ gem "pg"
 gem "pgvector"
 gem "prompt_manager"
 gem "redis"
+gem "redis-client"
 gem "ruby_llm"
 gem "ruby-spacy"
 gem "sequel"
@@ -73,3 +79,11 @@ gem 'amazing_print'
 gem 'google_custom_search_api'
 gem 'google_search_results'
 gem "langfuse", "~> 0.1.1"
+
+gem "ruby-mcp-client", "~> 0.5.2"
+
+gem "tty-which", "~> 0.5.0"
+
+gem "open4", "~> 1.3"
+
+gem "rubyzip", "~> 2.4"
