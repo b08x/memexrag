@@ -1,0 +1,80 @@
+/* public/css/style.css */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc; /* Tailwind bg-slate-50 */
+}
+
+.tamil-font {
+  font-family: 'Noto Sans Tamil', sans-serif;
+}
+
+.input-tab.active {
+  border-bottom: 3px solid #3b82f6; /* Tailwind border-blue-500 */
+  color: #3b82f6; /* Tailwind text-blue-500 */
+  font-weight: 500; /* Tailwind font-medium */
+}
+
+.translation-card {
+  transition: all 0.2s ease;
+  border-left: 4px solid transparent;
+}
+
+.translation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); /* Tailwind shadow-lg */
+}
+
+.ai-refined {
+  border-left-color: #10b981; /* Tailwind border-green-500 */
+}
+
+.standard {
+  border-left-color: #6366f1; /* Tailwind border-indigo-500 */
+}
+
+.roundtrip {
+  border-left-color: #f59e0b; /* Tailwind border-amber-500 */
+}
+
+.progress-bar {
+  height: 4px;
+  background-color: #e2e8f0; /* Tailwind bg-slate-200 */
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #3b82f6; /* Tailwind bg-blue-500 */
+  transition: width 0.3s ease;
+}
+
+.copy-btn {
+  transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+  background-color: #e2e8f0; /* Tailwind hover:bg-slate-200 */
+}
+
+.copy-btn.copied {
+  background-color: #10b981; /* Tailwind bg-green-500 */
+  color: white;
+}
+
+@keyframes pulse {
+  0%, 100% {
+      opacity: 1;
+  }
+  50% {
+      opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.drag-active {
+  border-color: #3b82f6; /* Tailwind border-blue-500 */
+  background-color: #eff6ff; /* Tailwind bg-blue-50 */
+}

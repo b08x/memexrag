@@ -29,3 +29,5 @@ Gemfile.lock
 /vendor/
 /examples/
 /docs/
+**/uploads/***
+**/test/***

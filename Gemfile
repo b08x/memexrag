@@ -87,3 +87,5 @@ gem "tty-which", "~> 0.5.0"
 gem "open4", "~> 1.3"
 
 gem "rubyzip", "~> 2.4"
+
+gem "langchainrb", "~> 0.19.5"
