@@ -51,6 +51,7 @@ class PGConnect
 
     @db.run('CREATE EXTENSION IF NOT EXISTS vector')
     @db.run('CREATE EXTENSION IF NOT EXISTS hstore')
+    @db.run('CREATE EXTENSION IF NOT EXISTS pgcrypto') # Added for UUID support
 
     @db.extension :pg_array, :pg_hstore
     @db.extension :pg_json
@@ -66,10 +67,12 @@ class PGConnect
 
   def create_tables
     logger.info "Creating tables if they don't aleady exist"
-    @db.create_table?(:files) do
-      primary_key :id, type: :Bignum
+    @db.create_table?(:documents) do
+      primary_key :id, type: :uuid, default: Sequel.function(:gen_random_uuid)
       column :path, String
       column :type, String
+      column :embedding, "vector(1536)" # Added embedding column
+      column :metadata, :jsonb # Added metadata column
       index %i[path type]
     end
   end
@@ -78,7 +81,7 @@ class PGConnect
   def drop_tables
     logger.debug('Dropping tables')
     begin
-      @db.drop_table?(:files)
+      @db.drop_table?(:documents)
       @db.disconnect
       logger.debug('Database and tables dropped successfully')
     rescue StandardError => e
@@ -90,7 +93,7 @@ end
 # V = PGConnect.instance
 
 # Example of how to use the database connection now:
-# DB = PGV.db
+# DB = V.db
 #
 # DB.create_table? (:documents) do
 #   primary_key :id, type: :Bignum

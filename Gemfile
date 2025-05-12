@@ -22,10 +22,10 @@ gem 'pry'
 gem 'pry-doc'
 # Web framework and server
 gem 'sinatra'
-# gem 'sinatra-contrib'
-# gem 'puma'
+gem 'sinatra-contrib'
+gem 'puma'
 # gem 'rack'
-# gem 'rackup', '~> 2.2'
+gem 'rackup', '~> 2.2'
 
 # Asset pipeline
 gem 'algorithms'
