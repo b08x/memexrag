@@ -5,34 +5,17 @@
 class Agent
   # Initializes a new Agent.
   #
+  # @param prompt_object [LangfuseClient::Prompt] The pre-fetched Langfuse prompt object
+  #   that the agent will use for its primary instruction or system prompt.
   # @param tools [Array<RubyLLM::Tool, Class>] An array of tool instances or tool classes
   #   that inherit from RubyLLM::Tool. These tools will be registered with the chat
   #   and can be called by the LLM when needed.
   # @param model [String, nil] The model to use for the chat. If nil, uses RubyLLM's default.
-  # @param langfuse_client [LangfuseClient::Client, nil] An optional Langfuse client
-  #   for fetching managed prompts and logging.
-  # @param prompt_name [String, nil] The name of the prompt to fetch from Langfuse during initialization.
-  # @param prompt_version [Integer, String, nil] The version of the Langfuse prompt to fetch.
-  #   Defaults to the latest version if nil.
-  # @param prompt_label [String, nil] The label (e.g., "production", "staging") of the Langfuse prompt to fetch.
-  # @raise [LangfuseClient::NotFoundError] If the prompt_name is provided but the prompt doesn't exist in Langfuse.
-  def initialize(tools: [], model: nil, langfuse_client: nil, prompt_name: nil, prompt_version: nil, prompt_label: nil)
+  def initialize(prompt_object:, tools: [], model: nil)
     # Initialize the chat with the specified model if provided
     @chat = model ? RubyLLM.chat(model: model) : RubyLLM.chat
-    @langfuse_client = langfuse_client || LangfuseClient::Client.new
+    @prompt_object = prompt_object
     @tools = []
-    @prompt = nil
-    
-    # Load prompt from Langfuse if prompt_name is provided
-    if prompt_name && @langfuse_client
-      begin
-        @prompt = @langfuse_client.get_prompt(name: prompt_name, version: prompt_version, label: prompt_label)
-      rescue LangfuseClient::NotFoundError
-        raise LangfuseClient::NotFoundError, "Langfuse prompt '#{prompt_name}' not found during Agent initialization."
-      rescue StandardError => e
-        raise StandardError, "Error fetching Langfuse prompt during Agent initialization: #{e.message}"
-      end
-    end
 
     # Register tools with the chat if any are provided
     if tools.any?
@@ -42,7 +25,7 @@ class Agent
 
     # Set up event handlers
     setup_event_handlers
-    
+
     # Set up tool-specific event handlers if available
     setup_tool_handlers
   end
@@ -66,53 +49,33 @@ class Agent
     end
   end
 
-  # Asks a question to the LLM.
+  # Asks a question to the LLM using the agent's initialized prompt object.
   #
-  # This method can use:
-  # 1. A prompt loaded during initialization if a prompt_name was provided
-  # 2. A new prompt fetched from Langfuse if a prompt_name is provided in this call
-  # 3. A direct prompt string if no prompt was loaded and no prompt_name is provided
-  #
-  # It streams the response, printing chunks as they are received.
+  # It compiles the `LangfuseClient::Prompt` object (provided during initialization)
+  # with the given `prompt_variables` and sends it to the LLM.
+  # The method streams the response, printing content chunks as they are received.
   # If tools are registered with the chat, the LLM may decide to call them based on the prompt.
   #
-  # @param prompt [String, nil] The direct prompt string to use if a Langfuse prompt is not found or specified.
-  # @param prompt_name [String, nil] The name of the prompt to fetch from Langfuse, overriding any prompt loaded during initialization.
-  # @param prompt_version [Integer, String, nil] The version of the Langfuse prompt to fetch.
-  #   Defaults to the latest version if nil.
-  # @param prompt_label [String, nil] The label (e.g., "production", "staging") of the Langfuse prompt to fetch.
-  # @param prompt_variables [Hash] A hash of variables to compile the Langfuse prompt with.
+  # @param prompt_variables [Hash] A hash of variables to compile the agent's
+  #   `LangfuseClient::Prompt` object with.
   # @return [RubyLLM::Message] The final message from the LLM.
-  def ask(prompt = nil, prompt_name: nil, prompt_version: nil, prompt_label: nil, prompt_variables: {})
+  # @raise [StandardError] If the agent was not initialized with a valid prompt object.
+  def ask(prompt_variables: {})
     puts 'Assistant:'
 
-    # Determine the actual prompt to use
-    actual_prompt = nil
-    
-    # Case 1: New prompt_name is provided in this ask() call
-    if prompt_name && @langfuse_client
-      begin
-        langfuse_prompt = @langfuse_client.get_prompt(name: prompt_name, version: prompt_version, label: prompt_label)
-        # Compile the prompt with variables if provided
-        actual_prompt = langfuse_prompt.compile(prompt_variables)
-      rescue LangfuseClient::NotFoundError
-        puts "Warning: Langfuse prompt '#{prompt_name}' not found. Falling back to direct prompt."
-        actual_prompt = prompt
-      rescue StandardError => e
-        puts "Error fetching Langfuse prompt: #{e.message}. Falling back to direct prompt."
-        actual_prompt = prompt
-      end
-    # Case 2: Use the prompt loaded during initialization
-    elsif @prompt
-      actual_prompt = @prompt.compile(prompt_variables)
-    # Case 3: Use the direct prompt string
-    else
-      actual_prompt = prompt
+    raise StandardError, 'Agent not initialized with a valid LangfuseClient::Prompt object that responds to :compile.' unless @prompt_object && @prompt_object.respond_to?(:compile)
+
+    # Compile the prompt object with variables
+    begin
+      actual_prompt_content = @prompt_object.compile(prompt_variables)
+    rescue StandardError => e
+      # Handle potential errors during prompt compilation (e.g., missing variables)
+      raise StandardError, "Error compiling Langfuse prompt: #{e.message}"
     end
 
-    # Send the prompt to the LLM and stream the response
+    # Send the compiled prompt content to the LLM and stream the response
     # The LLM will automatically call tools if needed based on the conversation
-    @chat.ask(actual_prompt) do |chunk|
+    @chat.ask(actual_prompt_content) do |chunk|
       # Only print content chunks (not tool calls)
       print chunk.content if chunk.content
     end
@@ -176,29 +139,58 @@ end
 #   end
 # end
 #
-# # Set up Langfuse client
-# langfuse_config = { public_key: "pk-...", secret_key: "sk-...", host: "http://..." }
-# langfuse_client = LangfuseClient::Client.new(langfuse_config)
-#
-# # Create the agent with a prompt loaded from Langfuse
-# agent = Agent.new(
-#   tools: [WeatherTool.new],
-#   model: 'gpt-4o', # Use a model that supports tools
-#   langfuse_client: langfuse_client,
-#   prompt_name: "weather_assistant_prompt"
-# )
-#
-# # Ask a question using the loaded prompt
-# agent.ask(nil, prompt_variables: { location: "Berlin" })
-#
-# # Override with a different prompt
-# agent.ask(nil, prompt_name: "another_prompt", prompt_variables: { location: "New York" })
-#
-# # Fall back to a direct prompt
-# agent.ask("What's the weather like in Berlin? (Lat: 52.52, Long: 13.40)")
-#
-# # Add another tool later if needed
-# class DocumentSearch < RubyLLM::Tool
-#   # Tool implementation...
-# end
-# agent.add_tool(DocumentSearch.new(database))
+# # --- Code that uses the Agent ---
+# # (Assume langfuse_client is configured and available externally,
+# # and LangfuseClient::Prompt is defined. The following is a MOCK.)
+# #
+# # module LangfuseClient
+# #   class Prompt
+# #     attr_reader :name, :version
+# #     def initialize(name:, version:, content_template:)
+# #       @name = name
+# #       @version = version
+# #       @content_template = content_template
+# #     end
+# #
+# #     def compile(variables = {})
+# #       compiled_content = @content_template.dup
+# #       variables.each { |key, value| compiled_content.gsub!("{#{key}}", value.to_s) }
+# #       compiled_content
+# #     end
+# #   end
+# # end
+# #
+# # # External code would typically fetch the prompt object:
+# # # langfuse_client = LangfuseClient::Client.new(...)
+# # # weather_prompt_object = langfuse_client.get_prompt(name: "weather_assistant_prompt")
+# # # For this example, we'll create a mock prompt object:
+# # weather_prompt_object = LangfuseClient::Prompt.new(
+# #   name: "weather_assistant_prompt",
+# #   version: 1,
+# #   content_template: "What is the weather like in {location}?"
+# # )
+# #
+# # # Create the agent with the pre-fetched prompt object
+# # agent = Agent.new(
+# #   prompt_object: weather_prompt_object,
+# #   tools: [WeatherTool.new],
+# #   model: 'gpt-4o' # Use a model that supports tools
+# # )
+# #
+# # # Ask a question using the agent's initialized prompt object and variables
+# # agent.ask(prompt_variables: { location: "Berlin" })
+# #
+# # # Example of another prompt object
+# # # another_prompt_object = LangfuseClient::Prompt.new(
+# # #   name: "greeting_prompt",
+# # #   version: 1,
+# # #   content_template: "Greet {name} warmly."
+# # # )
+# # # agent_greeting = Agent.new(prompt_object: another_prompt_object, model: 'gpt-4o')
+# # # agent_greeting.ask(prompt_variables: { name: "Alice" })
+# #
+# # # Add another tool later if needed
+# # class DocumentSearch < RubyLLM::Tool
+# #   # Tool implementation...
+# # end
+# # agent.add_tool(DocumentSearch.new(database))

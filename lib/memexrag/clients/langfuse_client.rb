@@ -23,6 +23,10 @@ module LangfuseClient
   # Raised for other generic API errors from Langfuse.
   class LangfuseApiError < Error; end
 
+  # Constants for prompt types
+  PROMPT_TYPE_TEXT = 'text'
+  PROMPT_TYPE_CHAT = 'chat'
+
   # Manages configuration for the Langfuse client.
   class Config
     attr_reader :public_key, :secret_key, :host
@@ -46,9 +50,9 @@ module LangfuseClient
       @name = name
       @version = version.to_i # Ensure Integer
       @prompt_content = prompt_content # String for text, Array of Hashes for chat
-      @type = type.to_s # String: 'text' or 'chat'
+      @type = type.to_s # String: PROMPT_TYPE_TEXT or PROMPT_TYPE_CHAT
       @config = config # Hash
-      @labels = labels # Array of Strings
+      @labels = labels # Array of Strings (converted to strings in from_python)
       @tags = tags # Array of Strings
       @commit_message = commit_message # String or nil
       @raw_python_object = raw_python_object
@@ -56,13 +60,13 @@ module LangfuseClient
 
     def compile(variables = {})
       case @type
-      when 'text'
+      when PROMPT_TYPE_TEXT
         temp_content = @prompt_content.is_a?(String) ? @prompt_content.dup : @prompt_content.to_s
         variables.each do |key, value|
           temp_content.gsub!("{{#{key}}}", value.to_s)
         end
         temp_content
-      when 'chat'
+      when PROMPT_TYPE_CHAT
         if @prompt_content.is_a?(Array)
           @prompt_content.map do |message|
             current_message = message.is_a?(Hash) ? message.transform_keys(&:to_sym) : {}
@@ -98,7 +102,7 @@ module LangfuseClient
         end
       end
 
-      prompt_type_str = 'text'
+      prompt_type_str = PROMPT_TYPE_TEXT # Default
       prompt_content_val = 'Content not directly available'
       config_val = {}
 
@@ -110,7 +114,7 @@ module LangfuseClient
       if py_prompt_obj.respond_to?(:prompt) && py_prompt_obj.prompt
         raw_prompt_data = py_prompt_obj.prompt
         prompt_content_val = if prompt_type_str == 'chat' && raw_prompt_data.respond_to?(:to_a)
-                               raw_prompt_data.to_a.map { |msg_obj| { role: msg_obj.role.to_s, content: msg_obj.content.to_s } }
+                               raw_prompt_data.to_a.map { |msg_obj| { role: msg_obj.role.to_s, content: msg_obj.content.to_s } } # Assuming msg_obj has role & content
                              else
                                raw_prompt_data.to_s
                              end
@@ -127,12 +131,12 @@ module LangfuseClient
         prompt_type_str = inferred_type if inferred_type
 
         if inferred_content_raw
-          prompt_content_val = if prompt_type_str == 'chat' && inferred_content_raw.is_a?(Array)
+          prompt_content_val = if prompt_type_str == PROMPT_TYPE_CHAT && inferred_content_raw.is_a?(Array)
                                  inferred_content_raw.map { |m| { role: m['role'].to_s, content: m['content'].to_s } }
                                else
                                  inferred_content_raw.to_s
                                end
-        elsif prompt_type_str == 'chat'
+        elsif prompt_type_str == PROMPT_TYPE_CHAT
           prompt_content_val = []
         end
       end
@@ -214,8 +218,8 @@ module LangfuseClient
       raise ApiConnectionError, "Langfuse auth_check call failed: #{e.message} - Python traceback: #{fetch_python_traceback(e)}"
     end
 
-    def create_prompt(name:, prompt_content:, type: 'text', config: {}, labels: [], tags: [], commit_message: nil)
-      raise ArgumentError, "Invalid prompt type: '#{type}'. Must be 'text' or 'chat'." unless %w[text chat].include?(type.to_s)
+    def create_prompt(name:, prompt_content:, type: PROMPT_TYPE_TEXT, config: {}, labels: [], tags: [], commit_message: nil)
+      raise ArgumentError, "Invalid prompt type: '#{type}'. Must be '#{PROMPT_TYPE_TEXT}' or '#{PROMPT_TYPE_CHAT}'." unless [PROMPT_TYPE_TEXT, PROMPT_TYPE_CHAT].include?(type.to_s)
 
       sdk_prompt_params = {
         name: name,
