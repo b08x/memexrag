@@ -1,36 +1,24 @@
 # frozen_string_literal: true
 
-# Configure multilingual NLP pipeline
-# This module provides efficient NLP processing for English and Tamil texts
-# using a singleton pattern to avoid repeated model initialization.
-
-# Constants for model names
-
 module MemexRAG
   module Processors
-    # Multilingual class for NLP processing in English and Tamil
-    # Implements singleton pattern to avoid repeated model loading
-    # and provides optimized processing methods for sentence segmentation and NER
     class Multilingual
-      TA_SENTENCE_MODEL = 'xx_sent_ud_sm'  # Multilingual model for Tamil sentence segmentation
-      TA_NER_MODEL = 'xx_ent_wiki_sm'      # Multilingual model for Tamil Named Entity Recognition
-      ENG_MODEL = 'en_core_web_trf'        # Transformer-based model for English (Medical English)
+      TA_SENTENCE_MODEL = 'xx_sent_ud_sm'
+      TA_NER_MODEL = 'xx_ent_wiki_sm'
+      ENG_MODEL = 'en_core_web_trf' # Same as SpacyNLP uses
 
-      attr_reader :en_nlp, :ta_nlp_sents, :ta_nlp_ner
+      attr_reader :en_nlp, :ta_nlp_sents, :ta_nlp_ner, :initialization_error_message
 
       class << self
-        # Returns the singleton instance of Multilingual
-        # @return [Multilingual] the singleton instance
         def instance
           @instance ||= new
         end
       end
 
-      # Process English text for sentence segmentation and NER
-      # @param text_or_texts [String, Array<String>] Text(s) to process
-      # @param batch_size [Integer] Batch size for processing multiple texts
-      # @return [Hash, Array<Hash>] Processed data with sentences and entities
       def process_english(text_or_texts, batch_size: 50)
+        return handle_initialization_error('English processing error') if @initialization_error_message
+        return handle_model_not_loaded_error(@en_nlp, 'English model (@en_nlp) not available.', 'English processing error') unless @en_nlp
+
         if text_or_texts.is_a?(Array)
           process_english_batch(text_or_texts, batch_size)
         else
@@ -40,11 +28,16 @@ module MemexRAG
         handle_processing_error(e, 'English processing error')
       end
 
-      # Process Tamil text for sentence segmentation and NER
-      # @param text_or_texts [String, Array<String>] Text(s) to process
-      # @param batch_size [Integer] Batch size for processing multiple texts
-      # @return [Hash, Array<Hash>] Processed data with sentences and entities
       def process_tamil(text_or_texts, batch_size: 50)
+        return handle_initialization_error('Tamil processing error') if @initialization_error_message
+
+        unless @ta_nlp_sents && @ta_nlp_ner
+          models_missing = []
+          models_missing << 'Tamil sentence model' unless @ta_nlp_sents
+          models_missing << 'Tamil NER model' unless @ta_nlp_ner
+          return handle_model_not_loaded_error(nil, "#{models_missing.join(' and ')} not available.", 'Tamil processing error')
+        end
+
         if text_or_texts.is_a?(Array)
           process_tamil_batch(text_or_texts, batch_size)
         else
@@ -56,45 +49,63 @@ module MemexRAG
 
       private
 
-      # Initialize the models with optimized pipeline components
-      # This is called only once due to the singleton pattern
       def initialize
-        # Load English model with only necessary components for sentence segmentation and NER
-        @en_nlp = Spacy::Language.new(
-          ENG_MODEL
-        )
-
-        # Load Tamil sentence segmentation model with minimal components
-        @ta_nlp_sents = Spacy::Language.new(
-          TA_SENTENCE_MODEL
-        )
-
-        # Load Tamil NER model with minimal components
-        @ta_nlp_ner = Spacy::Language.new(
-          TA_NER_MODEL
-        )
+        @initialization_error_message = nil
+        begin
+          # All models are now fetched from the central registry
+          @en_nlp = SpacyModelRegistry.get_model(ENG_MODEL)
+          @ta_nlp_sents = SpacyModelRegistry.get_model(TA_SENTENCE_MODEL)
+          @ta_nlp_ner = SpacyModelRegistry.get_model(TA_NER_MODEL)
+        rescue StandardError => e
+          # If any model fails to load from the registry, store the error message.
+          # The processing methods will check this.
+          @initialization_error_message = "Failed to initialize one or more spaCy models via registry: #{e.message}"
+          warn "[MemexRAG::Processors::Multilingual] #{@initialization_error_message}"
+          # Depending on desired resilience, you might want specific fallbacks
+          # if only some models load. For now, any failure blocks all.
+        end
       end
 
-      # Process a batch of English texts
-      # @param texts [Array<String>] Array of texts to process
-      # @param batch_size [Integer] Batch size for processing
-      # @return [Array<Hash>] Array of processed data
+      def handle_initialization_error(context)
+        error_info = {
+          error: true,
+          message: "#{context}: Initialization failed due to: #{@initialization_error_message}",
+          sentences: [],
+          entities: []
+        }
+        warn error_info[:message] # Log it
+        error_info
+      end
+
+      def handle_model_not_loaded_error(_model_instance, specific_message, context)
+        # This method is a helper in case a model instance variable is unexpectedly nil
+        # even if no @initialization_error_message was set (e.g. logic error).
+        message = @initialization_error_message || specific_message
+        error_info = {
+          error: true,
+          message: "#{context}: #{message}",
+          sentences: [],
+          entities: []
+        }
+        warn error_info[:message] # Log it
+        error_info
+      end
+
+      # process_english_batch, process_single_english_text, extract_english_data,
+      # process_tamil_batch, process_single_tamil_text, handle_processing_error
+      # remain the same as they operate on the instance variables.
+      # Ensure they correctly use @en_nlp, @ta_nlp_sents, @ta_nlp_ner
+
       def process_english_batch(texts, batch_size)
         docs = @en_nlp.pipe(texts, batch_size: batch_size)
         docs.map { |doc| extract_english_data(doc) }
       end
 
-      # Process a single English text
-      # @param text [String] Text to process
-      # @return [Hash] Processed data with sentences and entities
       def process_single_english_text(text)
         doc = @en_nlp.read(text)
         extract_english_data(doc)
       end
 
-      # Extract structured data from an English doc
-      # @param doc [Spacy::Doc] Processed document
-      # @return [Hash] Structured data with sentences and entities
       def extract_english_data(doc)
         {
           sentences: doc.sents.map(&:text),
@@ -102,18 +113,9 @@ module MemexRAG
         }
       end
 
-      # Process a batch of Tamil texts
-      # @param texts [Array<String>] Array of texts to process
-      # @param batch_size [Integer] Batch size for processing
-      # @return [Array<Hash>] Array of processed data
       def process_tamil_batch(texts, batch_size)
-        # Process sentences
         sent_docs = @ta_nlp_sents.pipe(texts, batch_size: batch_size)
-
-        # Process NER
         ner_docs = @ta_nlp_ner.pipe(texts, batch_size: batch_size)
-
-        # Combine results
         sent_docs.zip(ner_docs).map do |sent_doc, ner_doc|
           {
             sentences: sent_doc.sents.map(&:text),
@@ -122,35 +124,33 @@ module MemexRAG
         end
       end
 
-      # Process a single Tamil text
-      # @param text [String] Text to process
-      # @return [Hash] Processed data with sentences and entities
       def process_single_tamil_text(text)
         sent_doc = @ta_nlp_sents.read(text)
         ner_doc = @ta_nlp_ner.read(text)
-
         {
           sentences: sent_doc.sents.map(&:text),
           entities: ner_doc.ents.map { |ent| { text: ent.text, label: ent.label_ } }
         }
       end
 
-      # Handle processing errors
-      # @param error [Exception] The error that occurred
-      # @param context [String] Context information about where the error occurred
-      # @return [Hash] Error information
       def handle_processing_error(error, context)
-        error_info = {
+        # Ensure this logs sufficiently or propagates errors as needed.
+        # The original implementation used `puts` if Rails.logger wasn't available.
+        message_text = "#{context}: #{error.message}"
+        log_details = "#{message_text}\n#{error.backtrace.join("\n")}"
+
+        if defined?(Rails) && Rails.logger
+          Rails.logger.error log_details
+        else
+          warn log_details # Use warn for stderr
+        end
+
+        {
           error: true,
-          message: "#{context}: #{error.message}",
+          message: message_text,
           sentences: [],
           entities: []
         }
-
-        # Log the error for debugging
-        puts "#{context}: #{error.message}\n#{error.backtrace.join("\n")}" if defined?(Rails) && Rails.logger
-
-        error_info
       end
     end
   end

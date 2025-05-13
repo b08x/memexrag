@@ -88,4 +88,6 @@ gem "open4", "~> 1.3"
 
 gem "rubyzip", "~> 2.4"
 
-gem "langchainrb", "~> 0.19.5"
+gem "mutex_m", "~> 0.3.0"
+
+gem "mutex", "~> 1.0"
