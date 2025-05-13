@@ -94,9 +94,8 @@ html lang="en"
               button#translateBtn.bg-emerald-600.hover:bg-emerald-700.text-white.px-6.py-2.rounded-lg.flex.items-center.space-x-2.transition
                 i.fas.fa-exchange-alt
                 span Translate
-              /! TODO: Implement document upload functionality
               button#uploadDocBtn.border.border-slate-600.hover:bg-slate-700.text-slate-300.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
-                i.fas.fa-upload
+                i.fas.fa-upload.mr-2
                 span Upload Document
               input#docUploadInput type="file" accept=".txt,.pdf,.docx" class="hidden"
 
@@ -115,18 +114,11 @@ html lang="en"
                   i.fas.fa-expand
             .bg-slate-900.rounded-lg.p-4.border.border-slate-700
               textarea#originalText.w-full.bg-transparent.text-slate-300.outline-none.resize-none.text-box placeholder="Enter text to translate or upload a document..." rows="15"
-                | Radiology Information System (RIS) is a computerized system used to manage medical imagery and associated data. RIS complements PACS (Picture Archiving and Communication System) and provides critical functionality for radiology departments, including:
-                | - Patient scheduling and tracking
-                | - Imaging procedure documentation
-                | - Results reporting and distribution
-                | - Billing and financial reporting
-                | 
-                | For IT support, common issues include:
-                | 1. System integration problems between RIS and PACS
-                | 2. Network connectivity issues affecting image transfer
-                | 3. User authentication failures
-                | 4. Slow system performance during peak hours
-                | 5. Data backup and recovery challenges
+
+            /! **** UPLOAD STATUS INDICATOR ****
+            #uploadStatusIndicator.text-slate-400.text-sm.mt-2.h-6.flex.items-center.space-x-2
+              /! Status messages and spinner will appear here via JS
+
             .flex.justify-between.items-center.mt-3.text-sm.text-slate-500
               div
                 i.fas.fa-keyboard.mr-1
@@ -150,12 +142,13 @@ html lang="en"
                 button.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Expand View"
                   i.fas.fa-expand
             .bg-slate-900.rounded-lg.p-4.border.border-slate-700
-              #translatedTextContainer.w-full.text-slate-300.tamil-font.text-box
-                #loadingIndicator.loading.text-center.py-20.text-slate-500
+              #translatedTextContainer.w-full.text-slate-300.text-box style="min-height: 300px;"
+                #loadingIndicator.text-center.py-20.text-slate-500
                   i.fas.fa-language.text-4xl.mb-3
                   p Translation will appear here
                 #actualTranslation.hidden
-                  /! Content will be populated by JavaScript after translation API call
+                  /! Content populated by JS
+
             .flex.justify-between.items-center.mt-3.text-sm.text-slate-500
               div
                 i.fas.fa-keyboard.mr-1
@@ -223,90 +216,77 @@ html lang="en"
 
       /! Screenshot/Screencast Analysis Tab
       #media-analysis.tab-content
+        /! ... (Keep existing media analysis content) ...
         .bg-slate-800.rounded-xl.p-6.mb-6.shadow-lg
-          h2.text-xl.font-semibold.text-white.mb-4 Analyze Radiology IT Support Media
-          p.text-slate-400.mb-6 Upload screenshots or screencasts of Radiology IT systems to extract and translate text, identify UI elements, and get contextual help.
+            h2.text-xl.font-semibold.text-white.mb-4 Analyze Radiology IT Support Media
+            p.text-slate-400.mb-6 Upload screenshots or screencasts of Radiology IT systems to extract and translate text, identify UI elements, and get contextual help.
 
-          .grid.grid-cols-1.lg:grid-cols-2.gap-6
-            /! Upload and Preview Section
-            .bg-slate-800.rounded-xl.p-6.shadow-lg
-              .flex.justify-between.items-center.mb-4
-                h3.text-lg.font-semibold.text-white Upload Media
-                .flex.space-x-2
-                  /! TODO: Implement screen capture
-                  button#captureBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Capture Screen"
-                    i.fas.fa-camera
-                  button#clearMediaBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Clear Media"
-                    i.fas.fa-trash-alt
+            .grid.grid-cols-1.lg:grid-cols-2.gap-6
+              /! Upload and Preview Section
+              .bg-slate-800.rounded-xl.p-6.shadow-lg
+                .flex.justify-between.items-center.mb-4
+                  h3.text-lg.font-semibold.text-white Upload Media
+                  .flex.space-x-2
+                    /! TODO: Implement screen capture
+                    button#captureBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Capture Screen"
+                      i.fas.fa-camera
+                    button#clearMediaBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Clear Media"
+                      i.fas.fa-trash-alt
 
-              #previewContainer.mb-4
-                #dropZoneOverlay.drop-zone-overlay
-                  i.fas.fa-cloud-upload-alt.text-4xl.text-slate-500.mb-3
-                  p.text-slate-400.mb-2 Drag & drop screenshot or screencast here
-                  p.text-sm.text-slate-500 or
-                  label.mt-3.bg-emerald-600.hover:bg-emerald-700.text-white.px-4.py-2.rounded-lg.cursor-pointer.transition for="mediaUpload"
-                    i.fas.fa-upload.mr-2
-                    | Select File
-                    input#mediaUpload type="file" accept="image/*,video/*" class="hidden"
-                img#previewImage alt="Preview of uploaded image"
-                video#previewVideo controls=""
+                #previewContainer.mb-4
+                  #dropZoneOverlay.drop-zone-overlay
+                    i.fas.fa-cloud-upload-alt.text-4xl.text-slate-500.mb-3
+                    p.text-slate-400.mb-2 Drag & drop screenshot or screencast here
+                    p.text-sm.text-slate-500 or
+                    label.mt-3.bg-emerald-600.hover:bg-emerald-700.text-white.px-4.py-2.rounded-lg.cursor-pointer.transition for="mediaUpload"
+                      i.fas.fa-upload.mr-2
+                      | Select File
+                      input#mediaUpload type="file" accept="image/*,video/*" class="hidden"
+                  img#previewImage alt="Preview of uploaded image"
+                  video#previewVideo controls=""
 
-              .flex.flex-wrap.gap-3.mb-4
-                button#extractTextBtn.bg-blue-600.hover:bg-blue-700.text-white.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
-                  i.fas.fa-font
-                  span Extract Text (OCR)
-                button#analyzeUiBtn.bg-purple-600.hover:bg-purple-700.text-white.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
-                  i.fas.fa-object-group
-                  span Analyze UI Elements
-                button#translateMediaBtn.bg-emerald-600.hover:bg-emerald-700.text-white.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
-                  i.fas.fa-language
-                  span Translate Extracted Text
+                .flex.flex-wrap.gap-3.mb-4
+                  button#extractTextBtn.bg-blue-600.hover:bg-blue-700.text-white.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
+                    i.fas.fa-font
+                    span Extract Text (OCR)
+                  button#analyzeUiBtn.bg-purple-600.hover:bg-purple-700.text-white.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
+                    i.fas.fa-object-group
+                    span Analyze UI Elements
+                  button#translateMediaBtn.bg-emerald-600.hover:bg-emerald-700.text-white.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
+                    i.fas.fa-language
+                    span Translate Extracted Text
 
-              .bg-slate-900.rounded-lg.p-4.border.border-slate-700
-                label.block.text-sm.font-medium.text-slate-400.mb-2 for="mediaTargetLangSelect" Target Language for Translation
-                .relative
-                  select#mediaTargetLangSelect.bg-slate-800.border.border-slate-700.text-slate-300.rounded-lg.px-4.py-2.pr-8.w-full.appearance-none.focus:ring-2.focus:ring-emerald-500.focus:border-emerald-500
-                    /! Populate dynamically from Sinatra route -> @target_languages
-                    - @target_languages.each do |code, name|
-                      option value=code selected=(code == 'ta') = name
-                  .pointer-events-none.absolute.inset-y-0.right-0.flex.items-center.px-2.text-slate-500
-                    i.fas.fa-chevron-down
+                .bg-slate-900.rounded-lg.p-4.border.border-slate-700
+                  label.block.text-sm.font-medium.text-slate-400.mb-2 for="mediaTargetLangSelect" Target Language for Translation
+                  .relative
+                    select#mediaTargetLangSelect.bg-slate-800.border.border-slate-700.text-slate-300.rounded-lg.px-4.py-2.pr-8.w-full.appearance-none.focus:ring-2.focus:ring-emerald-500.focus:border-emerald-500
+                      /! Populate dynamically from Sinatra route -> @target_languages
+                      - @target_languages.each do |code, name|
+                        option value=code selected=(code == 'ta') = name
+                    .pointer-events-none.absolute.inset-y-0.right-0.flex.items-center.px-2.text-slate-500
+                      i.fas.fa-chevron-down
 
-            /! Analysis Results Section
-            .bg-slate-800.rounded-xl.p-6.shadow-lg
-              .flex.justify-between.items-center.mb-4
-                h3.text-lg.font-semibold.text-white Analysis Results
-                .flex.space-x-2
-                  button#copyResultsBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Copy Results"
-                    i.fas.fa-copy
-                  button#downloadResultsBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Download Results"
-                    i.fas.fa-download
+              /! Analysis Results Section
+              .bg-slate-800.rounded-xl.p-6.shadow-lg
+                .flex.justify-between.items-center.mb-4
+                  h3.text-lg.font-semibold.text-white Analysis Results
+                  .flex.space-x-2
+                    button#copyResultsBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Copy Results"
+                      i.fas.fa-copy
+                    button#downloadResultsBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Download Results"
+                      i.fas.fa-download
 
-              .bg-slate-900.rounded-lg.p-4.border.border-slate-700.h-full
-                #analysisResults.text-slate-300.text-box
-                  #mediaLoadingIndicator.loading.text-center.py-20.text-slate-500.hidden
-                    i.fas.fa-spinner.fa-spin.text-4xl.mb-3
-                    p Analyzing media content...
-                  #mediaResultsPlaceholder.text-center.py-20.text-slate-500
-                    i.fas.fa-search.text-4xl.mb-3
-                    p Extracted text and analysis will appear here
-                  #actualMediaResults.hidden.space-y-4
-                    /! Populated by JS after analysis API calls
-                    / Example structure:
-                    / .bg-slate-800.p-3.rounded-lg
-                    /   h4.font-medium.text-white.mb-2 Extracted Text:
-                    /   #extractedTextContent.text-slate-300
-                    /     p.ocr-highlight Some extracted text...
-                    / .bg-slate-800.p-3.rounded-lg
-                    /   h4.font-medium.text-white.mb-2 UI Elements Identified:
-                    /   .text-slate-300.space-y-2
-                    /     div ...
-                    / .bg-slate-800.p-3.rounded-lg
-                    /   h4.font-medium.text-white.mb-2 Translated Text (Language):
-                    /   .text-slate-300.tamil-font ...
-                    / .bg-slate-800.p-3.rounded-lg
-                    /   h4.font-medium.text-white.mb-2 Support Suggestions:
-                    /   .text-slate-300.space-y-2.text-sm ...
+                .bg-slate-900.rounded-lg.p-4.border.border-slate-700.h-full
+                  #analysisResults.text-slate-300.text-box
+                    #mediaLoadingIndicator.loading.text-center.py-20.text-slate-500.hidden
+                      i.fas.fa-spinner.fa-spin.text-4xl.mb-3
+                      p Analyzing media content...
+                    #mediaResultsPlaceholder.text-center.py-20.text-slate-500
+                      i.fas.fa-search.text-4xl.mb-3
+                      p Extracted text and analysis will appear here
+                    #actualMediaResults.hidden.space-y-4
+                      /! Populated by JS after analysis API calls
+
 
         /! Sample Radiology UI Screens
         .bg-slate-800.rounded-xl.p-6.shadow-lg.mt-6
@@ -322,503 +302,4 @@ html lang="en"
                 p.text-sm.text-slate-300.mt-2.text-center = screen[:text]
 
     /! Link to external JS if you move script out
-    / script src="/js/radiology_translate.js"
-    script
-      | document.addEventListener('DOMContentLoaded', function() {
-      |   // Tab switching functionality
-      |   document.querySelectorAll('.tab-button').forEach(button => {
-      |     button.addEventListener('click', function() {
-      |       document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-      |       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-      |       this.classList.add('active');
-      |       const tabId = this.getAttribute('data-tab');
-      |       document.getElementById(tabId).classList.add('active');
-      |     });
-      |   });
-      |
-      |   // --- Text Translation Tab Elements ---
-      |   const translateBtn = document.getElementById('translateBtn');
-      |   const originalTextEl = document.getElementById('originalText');
-      |   const translatedTextContainer = document.getElementById('translatedTextContainer');
-      |   const loadingIndicator = document.getElementById('loadingIndicator');
-      |   const actualTranslation = document.getElementById('actualTranslation');
-      |   const originalWordCountEl = document.getElementById('originalWordCount');
-      |   const translatedWordCountEl = document.getElementById('translatedWordCount');
-      |   const clearOriginalBtn = document.getElementById('clearOriginalBtn');
-      |   const copyTranslatedBtn = document.getElementById('copyTranslatedBtn');
-      |   const downloadTranslatedBtn = document.getElementById('downloadTranslatedBtn');
-      |   const sourceLangSelect = document.getElementById('sourceLangSelect');
-      |   const targetLangSelect = document.getElementById('targetLangSelect');
-      |   const originalLangLabel = document.getElementById('originalLangLabel');
-      |   const translatedLangLabel = document.getElementById('translatedLangLabel');
-      |   const uploadDocBtn = document.getElementById('uploadDocBtn');
-      |   const docUploadInput = document.getElementById('docUploadInput');
-      |
-      |   // Update language labels on select change
-      |   sourceLangSelect.addEventListener('change', function() {
-      |     originalLangLabel.textContent = this.options[this.selectedIndex].text;
-      |   });
-      |   targetLangSelect.addEventListener('change', function() {
-      |     translatedLangLabel.textContent = this.options[this.selectedIndex].text;
-      |   });
-      |
-      |   // Trigger document upload input
-      |   uploadDocBtn.addEventListener('click', () => docUploadInput.click());
-      |   docUploadInput.addEventListener('change', handleDocumentUpload);
-      |
-      |   // --- Media Analysis Tab Elements ---
-      |   const mediaUploadInput = document.getElementById('mediaUpload');
-      |   const previewContainer = document.getElementById('previewContainer');
-      |   const previewImage = document.getElementById('previewImage');
-      |   const previewVideo = document.getElementById('previewVideo');
-      |   const dropZoneOverlay = document.getElementById('dropZoneOverlay');
-      |   const mediaLoadingIndicator = document.getElementById('mediaLoadingIndicator');
-      |   const mediaResultsPlaceholder = document.getElementById('mediaResultsPlaceholder');
-      |   const actualMediaResults = document.getElementById('actualMediaResults');
-      |   const clearMediaBtn = document.getElementById('clearMediaBtn');
-      |   const extractTextBtn = document.getElementById('extractTextBtn');
-      |   const analyzeUiBtn = document.getElementById('analyzeUiBtn');
-      |   const translateMediaBtn = document.getElementById('translateMediaBtn');
-      |   const copyResultsBtn = document.getElementById('copyResultsBtn');
-      |   const downloadResultsBtn = document.getElementById('downloadResultsBtn');
-      |   const mediaTargetLangSelect = document.getElementById('mediaTargetLangSelect');
-      |
-      |   // --- Event Listeners ---
-      |
-      |   // Text Translation
-      |   if (translateBtn) {
-      |     translateBtn.addEventListener('click', handleTextTranslation);
-      |   }
-      |   if (originalTextEl) {
-      |     originalTextEl.addEventListener('input', updateWordCount);
-      |     updateWordCount(); // Initial count
-      |   }
-      |   if (clearOriginalBtn) {
-      |     clearOriginalBtn.addEventListener('click', () => {
-      |       originalTextEl.value = '';
-      |       updateWordCount();
-      |       clearTranslationResults();
-      |     });
-      |   }
-      |   if (copyTranslatedBtn) {
-      |      copyTranslatedBtn.addEventListener('click', copyTranslatedText);
-      |   }
-      |   if (downloadTranslatedBtn) {
-      |      downloadTranslatedBtn.addEventListener('click', downloadTranslatedText);
-      |   }
-      |
-      |   // Media Analysis
-      |   if (mediaUploadInput) {
-      |     mediaUploadInput.addEventListener('change', (e) => handleFileSelection(e.target.files[0]));
-      |   }
-      |   if (previewContainer) {
-      |     previewContainer.addEventListener('dragover', handleDragOver);
-      |     previewContainer.addEventListener('dragleave', handleDragLeave);
-      |     previewContainer.addEventListener('drop', handleDrop);
-      |   }
-      |   if (clearMediaBtn) {
-      |     clearMediaBtn.addEventListener('click', clearMediaPreview);
-      |   }
-      |   if (extractTextBtn) {
-      |     extractTextBtn.addEventListener('click', () => handleMediaAnalysis('ocr'));
-      |   }
-      |   if (analyzeUiBtn) {
-      |     analyzeUiBtn.addEventListener('click', () => handleMediaAnalysis('ui'));
-      |   }
-      |   if (translateMediaBtn) {
-      |     translateMediaBtn.addEventListener('click', () => handleMediaAnalysis('translate'));
-      |   }
-      |   if (copyResultsBtn) {
-      |     copyResultsBtn.addEventListener('click', copyMediaResults);
-      |   }
-      |   if (downloadResultsBtn) {
-      |     downloadResultsBtn.addEventListener('click', downloadMediaResults);
-      |   }
-      |
-      |   // --- Functions ---
-      |
-      |   function updateWordCount() {
-      |     const text = originalTextEl.value.trim();
-      |     const words = text ? text.split(/\s+/).length : 0;
-      |     originalWordCountEl.textContent = words + ' words';
-      |     // Also clear translation memory results on input change
-      |     clearTranslationMemory();
-      |     // TODO: Optionally trigger TM lookup here after a small delay
-      |   }
-      |
-      |   function clearTranslationResults() {
-      |     loadingIndicator.classList.remove('hidden');
-      |     loadingIndicator.classList.remove('loading'); // Stop animation if was running
-      |     loadingIndicator.innerHTML = '<i class="fas fa-language text-4xl mb-3"></i><p>Translation will appear here</p>';
-      |     actualTranslation.innerHTML = ''; // Clear previous content
-      |     actualTranslation.classList.add('hidden');
-      |     translatedWordCountEl.textContent = '0 words';
-      |     clearTranslationMemory();
-      |   }
-      |
-      |   function clearTranslationMemory() {
-      |      const tmResults = document.getElementById('tmResults');
-      |      const tmMatchPercentage = document.getElementById('tmMatchPercentage');
-      |      if(tmResults) tmResults.innerHTML = '<p class=\"text-slate-500\">Translation memory results will appear here.</p>';
-      |      if(tmMatchPercentage) tmMatchPercentage.textContent = '0% match';
-      |   }
-      |
-      |   async function handleTextTranslation() {
-      |     const originalText = originalTextEl.value.trim();
-      |     const sourceLang = sourceLangSelect.value;
-      |     const targetLang = targetLangSelect.value;
-      |
-      |     if (!originalText) {
-      |       alert('Please enter text to translate.');
-      |       return;
-      |     }
-      |
-      |     loadingIndicator.classList.remove('hidden');
-      |     loadingIndicator.classList.add('loading');
-      |     loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Translating...</p>';
-      |     actualTranslation.classList.add('hidden');
-      |     actualTranslation.innerHTML = ''; // Clear previous
-      |     translatedWordCountEl.textContent = '0 words';
-      |
-      |     // --- TODO: Replace with actual API call to Sinatra backend ---
-      |     console.log(`Simulating translation: '${originalText.substring(0, 30)}...' from ${sourceLang} to ${targetLang}`);
-      |     try {
-      |       // Example using fetch to a hypothetical endpoint
-      |       // const response = await fetch('/memexrag/proxy/translate', { // Your backend endpoint
-      |       //   method: 'POST',
-      |       //   headers: { 'Content-Type': 'application/json' },
-      |       //   body: JSON.stringify({ text: originalText, source: sourceLang, target: targetLang })
-      |       // });
-      |       // if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      |       // const data = await response.json();
-      |       // const translatedText = data.translated_text;
-      |
-      |       // Simulate API response delay and content
-      |       await new Promise(resolve => setTimeout(resolve, 1500));
-      |       const translatedText = `(சிமுலேட்டட்) ${targetLang} மொழிபெயர்ப்பு:\n${originalText.split('\n').map(line => `- ${line}`).join('\n')}`; // Mock translation
-      |
-      |       loadingIndicator.classList.add('hidden');
-      |       loadingIndicator.classList.remove('loading');
-      |       actualTranslation.innerHTML = `<p>${translatedText.replace(/\n/g, '<br>')}</p>`; // Display translated text
-      |       actualTranslation.classList.remove('hidden');
-      |
-      |       // Update translated word count
-      |       const translatedWords = translatedText.trim() ? translatedText.trim().split(/\s+/).length : 0;
-      |       translatedWordCountEl.textContent = translatedWords + ' words';
-      |
-      |       // TODO: Implement Translation Memory lookup and display
-      |       lookupTranslationMemory(originalText);
-      |
-      |     } catch (error) {
-      |       console.error('Translation Error:', error);
-      |       loadingIndicator.innerHTML = '<i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-3"></i><p>Translation failed. Please try again.</p>';
-      |       loadingIndicator.classList.remove('loading');
-      |       actualTranslation.classList.add('hidden');
-      |     }
-      |   }
-      |
-      |   function handleDocumentUpload(event) {
-      |      const file = event.target.files[0];
-      |      if (!file) return;
-      |
-      |      console.log(`Selected document: ${file.name}, type: ${file.type}`);
-      |      // TODO: Implement actual document upload to backend
-      |      // Show processing indicator
-      |      // Use FileReader to read content (for TXT) or send file to backend for processing (PDF, DOCX)
-      |      // Update originalTextEl with extracted text or show status message
-      |      alert(`Document upload for "${file.name}" is not fully implemented yet.`);
-      |      // Reset input value to allow uploading the same file again
-      |      event.target.value = null;
-      |   }
-      |
-      |   function lookupTranslationMemory(text) {
-      |      console.log("Simulating Translation Memory lookup for:", text.substring(0, 50));
-      |      const tmResults = document.getElementById('tmResults');
-      |      const tmMatchPercentage = document.getElementById('tmMatchPercentage');
-      |      if (!tmResults || !tmMatchPercentage) return;
-      |
-      |      // --- TODO: Replace with actual API call to TM backend ---
-      |      // Simulate finding matches
-      |      const matches = [];
-      |      if (text.includes("integration problems")) {
-      |         matches.push({ source: "System integration problems between RIS and PACS", target: "RIS மற்றும் PACS இடையே அமைப்பு ஒருங்கிணைப்பு பிரச்சினைகள்", score: 85 });
-      |      }
-      |      if (text.includes("authentication failures")) {
-      |         matches.push({ source: "User authentication failures", target: "பயனர் அங்கீகார தோல்விகள்", score: 90 });
-      |      }
-      |
-      |      if (matches.length > 0) {
-      |         let highestScore = 0;
-      |         let resultsHTML = '';
-      |         matches.forEach(match => {
-      |            highestScore = Math.max(highestScore, match.score);
-      |            resultsHTML += `
-      |              <div class="p-2 bg-slate-800 rounded hover:bg-slate-700 transition cursor-pointer" title="Match: ${match.score}%">
-      |                <p class="text-slate-300">${match.source}</p>
-      |                <p class="text-slate-500 tamil-font mt-1">${match.target}</p>
-      |              </div>`;
-      |         });
-      |         tmResults.innerHTML = resultsHTML;
-      |         tmMatchPercentage.textContent = `${highestScore}% match`;
-      |      } else {
-      |         clearTranslationMemory(); // Reset if no matches
-      |      }
-      |   }
-      |
-      |   function copyTranslatedText() {
-      |      const textToCopy = actualTranslation.innerText;
-      |      if (!textToCopy) {
-      |         alert('Nothing to copy.');
-      |         return;
-      |      }
-      |      navigator.clipboard.writeText(textToCopy).then(() => {
-      |         const originalIcon = copyTranslatedBtn.innerHTML;
-      |         copyTranslatedBtn.innerHTML = '<i class="fas fa-check text-emerald-500"></i>';
-      |         setTimeout(() => { copyTranslatedBtn.innerHTML = originalIcon; }, 1500);
-      |      }).catch(err => {
-      |         console.error('Failed to copy text: ', err);
-      |         alert('Failed to copy text.');
-      |      });
-      |   }
-      |
-      |   function downloadTranslatedText() {
-      |      const textToDownload = actualTranslation.innerText;
-      |       if (!textToDownload) {
-      |         alert('Nothing to download.');
-      |         return;
-      |       }
-      |       const blob = new Blob([textToDownload], { type: 'text/plain;charset=utf-8' });
-      |       const url = URL.createObjectURL(blob);
-      |       const a = document.createElement('a');
-      |       a.href = url;
-      |       a.download = `translation_${targetLangSelect.value}.txt`;
-      |       document.body.appendChild(a);
-      |       a.click();
-      |       document.body.removeChild(a);
-      |       URL.revokeObjectURL(url);
-      |   }
-      |
-      |   // Media Analysis Functions
-      |   function handleFileSelection(file) {
-      |     if (!file) return;
-      |     if (!file.type.match('image.*') && !file.type.match('video.*')) {
-      |       alert('Please select an image or video file');
-      |       return;
-      |     }
-      |     const reader = new FileReader();
-      |     reader.onload = function(e) {
-      |       if (file.type.match('image.*')) {
-      |         previewImage.src = e.target.result;
-      |         previewImage.style.display = 'block';
-      |         previewVideo.style.display = 'none';
-      |         previewVideo.src = ''; // Clear video source
-      |       } else {
-      |         previewVideo.src = e.target.result;
-      |         previewVideo.style.display = 'block';
-      |         previewImage.style.display = 'none';
-      |         previewImage.src = ''; // Clear image source
-      |       }
-      |       previewContainer.classList.add('has-preview');
-      |       dropZoneOverlay.style.display = 'none';
-      |       // Store file reference if needed for API calls
-      |       previewContainer.dataset.uploadedFile = file.name; // Example
-      |     };
-      |     reader.readAsDataURL(file);
-      |     clearMediaResults(); // Clear previous results on new upload
-      |   }
-      |
-      |   function handleDragOver(e) {
-      |     e.preventDefault();
-      |     this.classList.add('border-emerald-500');
-      |   }
-      |
-      |   function handleDragLeave(e) {
-      |     this.classList.remove('border-emerald-500');
-      |   }
-      |
-      |   function handleDrop(e) {
-      |     e.preventDefault();
-      |     this.classList.remove('border-emerald-500');
-      |     if (e.dataTransfer.files.length) {
-      |       handleFileSelection(e.dataTransfer.files[0]);
-      |     }
-      |   }
-      |
-      |   function clearMediaPreview() {
-      |     previewImage.src = '';
-      |     previewVideo.src = '';
-      |     previewImage.style.display = 'none';
-      |     previewVideo.style.display = 'none';
-      |     previewContainer.classList.remove('has-preview');
-      |     dropZoneOverlay.style.display = 'flex';
-      |     mediaUploadInput.value = null; // Reset file input
-      |     delete previewContainer.dataset.uploadedFile;
-      |     clearMediaResults();
-      |   }
-      |
-      |   function clearMediaResults() {
-      |      actualMediaResults.classList.add('hidden');
-      |      actualMediaResults.innerHTML = ''; // Clear content
-      |      mediaResultsPlaceholder.classList.remove('hidden');
-      |      mediaLoadingIndicator.classList.add('hidden');
-      |   }
-      |
-      |   async function handleMediaAnalysis(analysisType) {
-      |      if (!previewContainer.classList.contains('has-preview')) {
-      |       alert('Please upload an image or video first');
-      |       return;
-      |     }
-      |
-      |     mediaLoadingIndicator.classList.remove('hidden');
-      |     mediaResultsPlaceholder.classList.add('hidden');
-      |     actualMediaResults.classList.add('hidden');
-      |     actualMediaResults.innerHTML = ''; // Clear previous
-      |
-      |     // --- TODO: Replace with actual API call(s) to Sinatra backend ---
-      |     console.log(`Simulating media analysis: ${analysisType}`);
-      |     const targetLang = mediaTargetLangSelect.value;
-      |     // Example: Send file data (or reference) and analysisType to backend
-      |     // const formData = new FormData();
-      |     // const fileInput = document.getElementById('mediaUpload');
-      |     // if (fileInput.files[0]) formData.append('media_file', fileInput.files[0]);
-      |     // formData.append('analysis_type', analysisType);
-      |     // formData.append('target_language', targetLang);
-      |     // const response = await fetch('/memexrag/proxy/media_analysis', { // Your backend endpoint
-      |     //    method: 'POST',
-      |     //    body: formData
-      |     // });
-      |     // const results = await response.json();
-      |
-      |     try {
-      |       await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
-      |
-      |       // Simulate results based on analysis type
-      |       let resultsHTML = '';
-      |       if (analysisType === 'ocr' || analysisType === 'translate' || analysisType === 'ui') {
-      |          resultsHTML += `
-      |             <div class="bg-slate-800 p-3 rounded-lg">
-      |               <h4 class="font-medium text-white mb-2">Extracted Text:</h4>
-      |               <div id="extractedTextContent" class="text-slate-300">
-      |                 <p class="ocr-highlight">RIS Configuration Wizard</p>
-      |                 <p class="ocr-highlight">Step 3: PACS Integration Settings</p>
-      |                 <p>Server Address: <span class="ocr-highlight">pacs.radiologyhospital.org</span></p>
-      |               </div>
-      |             </div>`;
-      |       }
-      |       if (analysisType === 'ui') {
-      |          resultsHTML += `
-      |             <div class="bg-slate-800 p-3 rounded-lg">
-      |               <h4 class="font-medium text-white mb-2">UI Elements Identified:</h4>
-      |               <div class="text-slate-300 space-y-2">
-      |                 <div class="flex items-start"><span class="bg-blue-600 text-white text-xs px-2 py-1 rounded mr-2">Button</span><p>"Test Connection"</p></div>
-      |                 <div class="flex items-start"><span class="bg-purple-600 text-white text-xs px-2 py-1 rounded mr-2">Input Field</span><p>"Server Address"</p></div>
-      |               </div>
-      |             </div>`;
-      |       }
-      |       if (analysisType === 'translate') {
-      |          // Simulate translation based on targetLang
-      |          let translatedMock = '';
-      |          if (targetLang === 'ta') {
-      |             translatedMock = '<p>RIS கட்டமைப்பு வழிகாட்டி</p><p>படி 3: PACS ஒருங்கிணைப்பு அமைப்புகள்</p><p>சேவையக முகவரி: pacs.radiologyhospital.org</p>';
-      |          } else {
-      |             translatedMock = `<p>Translated to ${targetLang}: RIS Configuration Wizard...</p>`;
-      |          }
-      |          resultsHTML += `
-      |             <div class="bg-slate-800 p-3 rounded-lg">
-      |               <h4 class="font-medium text-white mb-2">Translated Text (${targetLangSelect.options[targetLangSelect.selectedIndex].text}):</h4>
-      |               <div class="text-slate-300 ${targetLang === 'ta' ? 'tamil-font' : ''}">${translatedMock}</div>
-      |             </div>`;
-      |       }
-      |       // Always add suggestions if UI or OCR was done
-      |       if (analysisType === 'ocr' || analysisType === 'translate' || analysisType === 'ui') {
-      |          resultsHTML += `
-      |             <div class="bg-slate-800 p-3 rounded-lg">
-      |               <h4 class="font-medium text-white mb-2">Support Suggestions:</h4>
-      |               <div class="text-slate-300 space-y-2 text-sm">
-      |                 <div class="flex items-start"><i class="fas fa-info-circle text-blue-400 mt-1 mr-2"></i><p>Verify network firewall allows traffic on port 104.</p></div>
-      |                 <div class="flex items-start"><i class="fas fa-info-circle text-blue-400 mt-1 mr-2"></i><p>Check AE Titles match on both systems.</p></div>
-      |               </div>
-      |             </div>`;
-      |       }
-      |
-      |       mediaLoadingIndicator.classList.add('hidden');
-      |       actualMediaResults.innerHTML = resultsHTML;
-      |       actualMediaResults.classList.remove('hidden');
-      |
-      |     } catch (error) {
-      |        console.error('Media Analysis Error:', error);
-      |        mediaLoadingIndicator.innerHTML = '<i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-3"></i><p>Analysis failed. Please try again.</p>';
-      |        mediaLoadingIndicator.classList.remove('loading');
-      |        actualMediaResults.classList.add('hidden');
-      |     }
-      |   }
-      |
-      |   function copyMediaResults() {
-      |      const resultsText = actualMediaResults.innerText;
-      |      if (!resultsText || actualMediaResults.classList.contains('hidden')) {
-      |         alert('No results to copy.');
-      |         return;
-      |      }
-      |      navigator.clipboard.writeText(resultsText).then(() => {
-      |         const originalIcon = copyResultsBtn.innerHTML;
-      |         copyResultsBtn.innerHTML = '<i class="fas fa-check text-emerald-500"></i>';
-      |         setTimeout(() => { copyResultsBtn.innerHTML = originalIcon; }, 1500);
-      |      }).catch(err => {
-      |         console.error('Failed to copy results: ', err);
-      |         alert('Failed to copy results.');
-      |      });
-      |   }
-      |
-      |   function downloadMediaResults() {
-      |      const resultsText = actualMediaResults.innerText;
-      |      if (!resultsText || actualMediaResults.classList.contains('hidden')) {
-      |         alert('No results to download.');
-      |         return;
-      |      }
-      |       const blob = new Blob([resultsText], { type: 'text/plain;charset=utf-8' });
-      |       const url = URL.createObjectURL(blob);
-      |       const a = document.createElement('a');
-      |       a.href = url;
-      |       a.download = 'radiology-media-analysis-results.txt';
-      |       document.body.appendChild(a);
-      |       a.click();
-      |       document.body.removeChild(a);
-      |       URL.revokeObjectURL(url);
-      |   }
-      |
-      | }); // End DOMContentLoaded
-      |
-      | // Global function called by sample image clicks
-      | function loadSampleImage(type) {
-      |   let sampleImageUrl = '';
-      |   let altText = '';
-      |   const previewImage = document.getElementById('previewImage');
-      |   const previewVideo = document.getElementById('previewVideo');
-      |   const previewContainer = document.getElementById('previewContainer');
-      |   const dropZoneOverlay = document.getElementById('dropZoneOverlay');
-      |
-      |   switch(type) {
-      |     case 'ris_login': sampleImageUrl = 'https://via.placeholder.com/800x600/1e293b/64748b?text=RIS+Login+Screen%0A%0AUsername%3A+__________%0APassword%3A+__________%0A%0ALogin+Button'; altText = 'Sample RIS Login Screen'; break;
-      |     case 'pacs_config': sampleImageUrl = 'https://via.placeholder.com/800x600/1e293b/64748b?text=PACS+Configuration%0A%0AServer+Address%3A+pacs.radiologyhospital.org%0APort%3A+104%0AAE+Title%3A+RIS_SERVER%0A%0ATest+Connection+Button'; altText = 'Sample PACS Configuration Screen'; break;
-      |     case 'worklist_error': sampleImageUrl = 'https://via.placeholder.com/800x600/1e293b/64748b?text=Worklist+Error%0A%0AError%3A+Unable+to+retrieve+worklist%0A%0APACS+server+unreachable%0ACheck+network+connection%0A%0ARetry+Button'; altText = 'Sample Worklist Error Screen'; break;
-      |     case 'dicom_viewer': sampleImageUrl = 'https://via.placeholder.com/800x600/1e293b/64748b?text=DICOM+Viewer%0A%0APatient%3A+John+Doe%0AStudy%3A+CT+Abdomen%0ASeries%3A+Axial+Images%0A%0AWindow+Level%3A+350%0AWindow+Width%3A+1500%0A%0AZoom%2C+Pan%2C+Rotate+Tools'; altText = 'Sample DICOM Viewer Screen'; break;
-      |     default: return;
-      |   }
-      |
-      |   previewImage.src = sampleImageUrl;
-      |   previewImage.alt = altText;
-      |   previewImage.style.display = 'block';
-      |   previewVideo.style.display = 'none';
-      |   previewVideo.src = ''; // Clear video source
-      |   previewContainer.classList.add('has-preview');
-      |   dropZoneOverlay.style.display = 'none';
-      |   delete previewContainer.dataset.uploadedFile; // Clear any real uploaded file ref
-      |
-      |   // Clear any previous results using the function defined inside DOMContentLoaded
-      |   if (typeof clearMediaResults === 'function') {
-      |      clearMediaResults();
-      |   } else { // Fallback if somehow called before DOM ready
-      |      document.getElementById('actualMediaResults').classList.add('hidden');
-      |      document.getElementById('mediaResultsPlaceholder').classList.remove('hidden');
-      |   }
-      | }
+    script src="/js/radiology_translate.js"
