@@ -1,4 +1,4 @@
-require 'ohm'
+# frozen_string_literal: true
 
 class Task < Ohm::Model
   attribute :name

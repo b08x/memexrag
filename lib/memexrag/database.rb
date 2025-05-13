@@ -67,13 +67,18 @@ class PGConnect
 
   def create_tables
     logger.info "Creating tables if they don't aleady exist"
-    @db.create_table?(:documents) do
+    @db.create_table?(:files) do
       primary_key :id, type: :uuid, default: Sequel.function(:gen_random_uuid)
       column :path, String
       column :type, String
-      column :embedding, "vector(1536)" # Added embedding column
-      column :metadata, :jsonb # Added metadata column
       index %i[path type]
+    end
+    @db.create_table?(:documents) do
+      primary_key :id, type: :uuid, default: Sequel.function(:gen_random_uuid)
+      column :title, String
+      column :content, String
+      column :metadata, :jsonb # Added metadata column
+      index %i[title content metadata]
     end
   end
 
@@ -81,6 +86,7 @@ class PGConnect
   def drop_tables
     logger.debug('Dropping tables')
     begin
+      @db.drop_table?(:files)
       @db.drop_table?(:documents)
       @db.disconnect
       logger.debug('Database and tables dropped successfully')
@@ -95,16 +101,6 @@ end
 # Example of how to use the database connection now:
 # DB = V.db
 #
-# DB.create_table? (:documents) do
-#   primary_key :id, type: :Bignum
-#   column :pageContent, String
-#   jsonb :metadata
-#   column :embedding, "vector(1536)"
-
-#   foreign_key :topic_id, :topics
-#   full_text_index :pageContent
-#   index :metadata
-# end
 
 # DB.create_table? (:chunks) do
 #   primary_key :id, type: :Bignum
@@ -132,3 +128,25 @@ end
 #   foreign_key :topic_id, :topics
 #   index [:vector, :chunk_id, :topic_id]
 # end
+
+# Initialize the database connection from PGConnect singleton
+pg_connection_instance = PGConnect.instance
+
+# Assign the database connection to Sequel::Model
+# This ensures all Sequel models will use this connection.
+raise 'Critical: Database connection not available from PGConnect for Sequel models.' unless pg_connection_instance&.db
+
+Sequel::Model.db = pg_connection_instance.db
+
+# If the DB connection isn't available, it's a critical issue for Sequel models.
+
+# require_relative 'models/sequel/document'
+
+require_relative 'models/ohm/fileobject'
+require_relative 'models/ohm/document'
+require_relative 'models/ohm/topic'
+require_relative 'models/ohm/page'
+require_relative 'models/ohm/paragraph'
+require_relative 'models/ohm/sentence'
+require_relative 'models/ohm/phrase'
+require_relative 'models/ohm/word'

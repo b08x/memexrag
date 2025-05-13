@@ -22,6 +22,8 @@ require_relative 'memexrag/version'
 require_relative 'memexrag/config'
 require_relative 'memexrag/logging'
 
+include Logging
+
 require_relative 'memexrag/retrievers/archivebox'
 require_relative 'memexrag/nlp/spacy_model_registry'
 require_relative 'memexrag/processors/ruby-docling'

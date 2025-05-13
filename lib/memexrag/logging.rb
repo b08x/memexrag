@@ -97,8 +97,3 @@ module Logging
     end
   end
 end
-# Includes the Logging module into the main object space.
-# This makes the `logger` method available in the top-level scope
-# (e.g., in scripts or IRB sessions) and in any class that doesn't
-# explicitly include `Logging` but where an instance method `logger` might be called.
-include Logging

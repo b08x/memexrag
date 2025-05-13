@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Phrase < Ohm::Model
   include Ohm::DataTypes
   include Ohm::Callbacks

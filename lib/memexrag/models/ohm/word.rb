@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Word < Ohm::Model
   include Ohm::DataTypes
   include Ohm::Callbacks
