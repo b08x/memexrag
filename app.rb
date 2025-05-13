@@ -21,7 +21,7 @@ set :uploads_dir, File.join(settings.public_folder, 'uploads')
 FileUtils.mkdir_p(settings.uploads_dir) unless Dir.exist?(settings.uploads_dir)
 
 include Logging # Make logger available
-
+logger.debug('hello')
 # --- Constants ---
 SUPPORTED_LANGUAGES = %w[en es ta fr de].freeze # Define supported languages
 
@@ -316,7 +316,6 @@ post '/memexrag/proxy/translate' do
 end
 
 # --- TODO: Add backend routes for ---
-# - Document Upload (/memexrag/upload/document) -> Process file, extract text
 # - Media Upload (/memexrag/upload/media) -> Store media
 # - Media Analysis (/memexrag/proxy/media_analysis) -> Call OCR/UI/Translation services
 # - Translation Memory Lookup (/memexrag/api/tm_lookup)
