@@ -349,29 +349,95 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function retrieveResult(sidekiqJid) {
-    try {
-      const resultResponse = await fetch(`/retrieve_result?jid=${encodeURIComponent(sidekiqJid)}`);
-      if (!resultResponse.ok) {
-        const errorData = await resultResponse.json().catch(() => ({ error: `Server responded with ${resultResponse.status} (Result retrieval)` }));
-        let specificError = errorData.error || 'Unknown retrieval error';
-        if (specificError.includes("Result not found in Redis")) {
-             specificError = "Processing finished, but the result could not be found. It might have expired. Please try uploading again.";
+    const retryInterval = 10000; // 10 seconds
+    const maxRetries = 10;
+    let attempts = 0;
+    let lastError = null;
+
+    while (attempts < maxRetries) {
+        attempts++;
+        showUploadStatus(`Finalizing document (Attempt ${attempts}/${maxRetries})...`, true);
+        console.log(`Attempt ${attempts}/${maxRetries} to retrieve result for JID: ${sidekiqJid}`);
+
+        try {
+            const resultResponse = await fetch(`/retrieve_result?jid=${encodeURIComponent(sidekiqJid)}`);
+
+            if (resultResponse.ok) {
+                const resultData = await resultResponse.json();
+                if (resultData.success && typeof resultData.text_content === 'string') {
+                    if (originalText && originalWordCount) {
+                        originalText.value = resultData.text_content;
+                        updateWordCount(originalText, originalWordCount);
+                        showUploadStatus('Document content extracted successfully!', false);
+                    }
+                    return; // Success, exit function
+                } else {
+                    // HTTP 200, but logical error from server (e.g., { success: false, error: "Result not found..." })
+                    lastError = new Error(resultData.error || 'Unknown server error after successful HTTP request.');
+                    if (lastError.message.includes("Result not found in Redis")) {
+                        console.warn(`Result not found (Attempt ${attempts}/${maxRetries}): ${lastError.message}. Retrying...`);
+                        if (attempts < maxRetries) {
+                            await new Promise(resolve => setTimeout(resolve, retryInterval));
+                            continue;
+                        }
+                    }
+                    // For other logical errors, or "Result not found" on last attempt, throw to exit loop.
+                    throw lastError;
+                }
+            } else { // !resultResponse.ok (e.g., 404, 500)
+                let errorJson;
+                try {
+                    errorJson = await resultResponse.json();
+                    lastError = new Error(errorJson.error || `Server responded with status ${resultResponse.status}`);
+                } catch (e) {
+                    lastError = new Error(`Server responded with status ${resultResponse.status} and non-JSON body`);
+                }
+
+                if (lastError.message.includes("Result not found in Redis")) {
+                    console.warn(`Result not found (HTTP ${resultResponse.status}, Attempt ${attempts}/${maxRetries}): ${lastError.message}. Retrying...`);
+                    if (attempts < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, retryInterval));
+                        continue;
+                    }
+                }
+                // For other HTTP errors, or "Result not found" on last attempt, throw to exit loop.
+                throw lastError;
+            }
+        } catch (error) {
+            // This catches network errors from fetch(), JSON parsing errors, or errors deliberately thrown above.
+            lastError = error; // Store the error
+            console.error(`Error on attempt ${attempts}/${maxRetries} for JID ${sidekiqJid}:`, lastError.message);
+
+            // If it's a "Result not found" error and we have retries left, the 'continue' above should have handled it.
+            // If it was a "Result not found" error thrown because it was the last attempt, we don't want to retry here.
+            if (lastError.message.includes("Result not found in Redis") && attempts < maxRetries) {
+                // This path should ideally not be hit if the logic above is correct for "not found" and retries.
+                // It implies a "not found" error was caught here before the last attempt.
+                console.warn(`Retrying "Result not found" after catch (Attempt ${attempts}/${maxRetries}): ${lastError.message}`);
+                await new Promise(resolve => setTimeout(resolve, retryInterval));
+                continue;
+            } else if (!lastError.message.includes("Result not found in Redis") && attempts < maxRetries) {
+                // For other errors (e.g. network) if retries are left.
+                console.warn(`Retrying after general error (Attempt ${attempts}/${maxRetries}): ${lastError.message}`);
+                await new Promise(resolve => setTimeout(resolve, retryInterval));
+                continue;
+            }
+            // If max retries or if it's an error we decided to throw from the try block (like a non-"not found" server error,
+            // or "not found" on the last attempt), this error (`lastError`) will be the one thrown after the loop.
+            // Or if it's a "Result not found" that has exhausted retries and was caught here.
         }
-        throw new Error(`Failed to retrieve result: ${specificError}`);
-      }
-      const resultData = await resultResponse.json();
-      if (resultData.success && typeof resultData.text_content === 'string') {
-        if (originalText && originalWordCount) {
-            originalText.value = resultData.text_content;
-            updateWordCount(originalText, originalWordCount);
-            showUploadStatus('Document content extracted successfully!', false);
-        }
-      } else {
-        throw new Error(resultData.error || 'Failed to get text content from result.');
-      }
-    } catch (error) {
-      throw error; // Re-throw to be caught by pollForCompletion's catch block
     }
+
+    // If loop finishes, all attempts are exhausted.
+    console.error(`Failed to retrieve result for JID ${sidekiqJid} after ${maxRetries} attempts. Last error:`, lastError ? lastError.message : "No specific error captured.");
+
+    // Throw the specific timeout error message if the last error was "Result not found"
+    if (lastError && lastError.message.includes("Result not found in Redis")) {
+        throw new Error("Error: Could not retrieve the document content after multiple attempts. The conversion might have taken too long or an issue occurred. Please try again.");
+    }
+    // Otherwise, throw the last encountered error or a generic timeout message.
+    const finalErrorMessage = lastError ? lastError.message : "Error: Could not retrieve the document content after multiple attempts due to an unknown issue. Please try again.";
+    throw new Error(finalErrorMessage.startsWith("Error:") ? finalErrorMessage : `Failed to retrieve result: ${finalErrorMessage}`);
   }
 
 
