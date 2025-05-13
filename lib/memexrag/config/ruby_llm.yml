@@ -17,6 +17,11 @@ bedrock_session_token: <%= ENV['AWS_SESSION_TOKEN'] %>
 # Custom OpenAI Endpoint
 openai_api_base: <%= ENV['OPENAI_API_BASE'] %>
 
+# Google Cloud Configuration (Primarily for Google Translate)
+# Ensure these ENV variables are set for Google Cloud services
+# google_cloud_project_id: <%= ENV['GOOGLE_CLOUD_PROJECT_ID'] %>
+# google_application_credentials: <%= ENV['GOOGLE_APPLICATION_CREDENTIALS'] %> # Path to service account key JSON
+
 # Default Models
 default_model: gemini-2.0-flash
 default_embedding_model: text-embedding-004
