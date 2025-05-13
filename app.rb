@@ -52,6 +52,171 @@ post '/upload' do
   end
 end
 
+# Configure temporary upload directory
+UPLOAD_FOLDER = File.join(settings.public_folder, 'uploads', 'temp_docling')
+FileUtils.mkdir_p(UPLOAD_FOLDER) unless Dir.exist?(UPLOAD_FOLDER)
+
+# Helper to instantiate the converter
+def docling_converter
+  # Ensure environment variables for URLs are set or use defaults
+  MemexRAG::Processors::DoclingConverter.new
+end
+
+# --- Route 1: Handle Initial File Upload ---
+post '/upload_document' do
+  content_type :json
+
+  unless params[:file] && (tmpfile = params[:file][:tempfile]) && (name = params[:file][:filename])
+    logger.warn 'Upload attempt failed: Missing file parameters.'
+    status 400
+    return { error: 'No file uploaded or invalid parameters.' }.to_json
+  end
+
+  # Securely save the uploaded file temporarily
+  temp_path = nil # Define outside begin block for ensure clause
+  submit_result = nil # Define outside begin block for ensure clause
+  begin
+    # Add a timestamp or unique ID to prevent overwrites if needed
+    original_filename = name
+    timestamp = Time.now.to_i
+    sanitized_filename = original_filename.gsub(/[^0-9A-Za-z.\-_]/, '_')
+    temp_path = File.join(settings.uploads_dir, "#{timestamp}-#{sanitized_filename}")
+
+    FileUtils.copy(tmpfile.path, temp_path)
+    logger.info "Uploaded file saved temporarily to: #{temp_path}"
+
+    # Submit to DoclingConverter
+    converter = docling_converter
+    submit_result = converter.submit_file(temp_path)
+
+    if submit_result && submit_result[:task_id]
+      logger.info "File '#{sanitized_filename}' submitted for conversion, task_id: #{submit_result[:task_id]}"
+      status 202 # Accepted
+      # Return the task ID and status endpoint path to the client
+      submit_result.to_json
+    else
+      logger.error "Failed to submit file '#{sanitized_filename}' for conversion via DoclingConverter."
+      status 500
+      { error: 'Failed to submit file for conversion.' }.to_json
+    end
+  rescue StandardError => e
+    logger.error "Error during file upload/submission for '#{name}': #{e.message}\n#{e.backtrace.join("\n")}"
+    status 500
+    { error: "Server error during upload: #{e.message}" }.to_json
+  ensure
+    # Clean up the initially uploaded temp file from Sinatra/Rack if it exists
+    # tmpfile.close! if tmpfile # Sinatra might handle this
+
+    # Clean up the file we copied to settings.uploads_dir ONLY IF submission failed immediately
+    if temp_path && File.exist?(temp_path) && (!submit_result || !submit_result[:task_id])
+      FileUtils.rm_f(temp_path)
+      logger.info "Cleaned up failed upload temp file: #{temp_path}"
+    end
+    # NOTE: If submission *succeeded*, the file at temp_path is potentially needed by the async process.
+    # A robust cleanup strategy for these files (if conversion succeeds/fails later) is recommended.
+  end
+end
+
+# --- Route 2: Check Task Status ---
+get '/check_task_status' do
+  content_type :json
+  status_endpoint = params[:endpoint]
+
+  unless status_endpoint && !status_endpoint.empty?
+    logger.warn 'Status check failed: Missing endpoint parameter.'
+    status 400
+    return { error: 'Missing status endpoint parameter.' }.to_json
+  end
+
+  begin
+    converter = docling_converter
+    # Using default polling settings defined within the check_status method
+    status_result = converter.check_status(status_endpoint)
+    logger.debug "Status check result for #{status_endpoint}: #{status_result[:status]}"
+    status_result.to_json
+  rescue StandardError => e
+    logger.error "Error checking task status for endpoint #{status_endpoint}: #{e.message}\n#{e.backtrace.join("\n")}"
+    status 500
+    { error: "Server error checking status: #{e.message}" }.to_json
+  end
+end
+
+# --- Route 3: Retrieve and Extract Result Text ---
+get '/retrieve_result' do
+  content_type :json
+  sidekiq_jid = params[:jid]
+
+  unless sidekiq_jid && !sidekiq_jid.empty?
+    logger.warn 'Result retrieval failed: Missing JID parameter.'
+    status 400
+    return { error: 'Missing sidekiq job ID parameter.' }.to_json
+  end
+
+  output_path = nil # To ensure cleanup happens correctly in ensure block
+  begin
+    converter = docling_converter
+    extraction_result = converter.retrieve_and_extract_zip_result(sidekiq_jid)
+
+    if extraction_result[:status] == 'SUCCESS'
+      output_path = extraction_result[:output_path] # Assign here for cleanup
+      extracted_text = nil
+      logger.info "Extraction successful for JID #{sidekiq_jid}. Output path: #{output_path}"
+
+      # Find the primary text file (adjust logic as needed)
+      # Prioritize .txt, then look for other common text formats
+      # Consider character encoding issues here
+      text_file_paths = Dir.glob("#{output_path}/**/*.txt") +
+                        Dir.glob("#{output_path}/**/*.{md,html,xml,json}") # Add other types if necessary
+
+      text_file_path = text_file_paths.first # Take the first match
+
+      if text_file_path && File.exist?(text_file_path)
+        logger.info "Found extracted text file: #{text_file_path}"
+        begin
+          # Attempt to read as UTF-8, handle potential encoding errors
+          extracted_text = File.read(text_file_path, encoding: 'UTF-8')
+        rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError => e
+          logger.warn "Encoding error reading #{text_file_path} as UTF-8: #{e.message}. Trying ISO-8859-1."
+          begin
+            extracted_text = File.read(text_file_path, encoding: 'ISO-8859-1').encode('UTF-8')
+          rescue StandardError => fallback_error
+            logger.error "Failed to read #{text_file_path} even with fallback encoding: #{fallback_error.message}"
+            # Decide: return error or empty string? Returning error for now.
+            status 500
+            return { success: false, error: "Failed to read extracted file due to encoding issues: #{text_file_path}" }.to_json
+          end
+        end
+        { success: true, text_content: extracted_text }.to_json
+      else
+        logger.warn "No primary text file (.txt, .md, .html, etc.) found in extraction directory: #{output_path} for JID #{sidekiq_jid}"
+        status 404
+        { success: false, error: 'Extracted text content file not found in the result.' }.to_json
+      end
+    else
+      # Log the specific error from the converter
+      error_message = extraction_result[:error] || 'Failed to retrieve or extract result.'
+      logger.error "Result retrieval/extraction failed for JID #{sidekiq_jid}: #{error_message}"
+      status 500 # Or map Docling errors to appropriate HTTP statuses if possible
+      { success: false, error: error_message }.to_json
+    end
+  rescue StandardError => e
+    logger.error "Unexpected error retrieving result for JID #{sidekiq_jid}: #{e.class} - #{e.message}\n#{e.backtrace.join("\n")}"
+    status 500
+    { success: false, error: "Server error retrieving result: #{e.message}" }.to_json
+  ensure
+    # !!! CRITICAL: Clean up the temporary extraction directory !!!
+    if output_path && Dir.exist?(output_path)
+      begin
+        FileUtils.remove_entry_secure(output_path)
+        logger.info "Successfully cleaned up extraction directory: #{output_path}"
+      rescue StandardError => e
+        # Log this error, but don't let it fail the request if text was already potentially sent
+        logger.error "!!! Failed to clean up extraction directory #{output_path}: #{e.message}"
+      end
+    end
+  end
+end
+
 get '/radiology/translate' do
   # --- Fetch dynamic data here ---
   # Example: Replace with actual data fetching logic
