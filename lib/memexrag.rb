@@ -25,7 +25,6 @@ require_relative 'memexrag/logging'
 
 include Logging
 
-require_relative 'memexrag/retrievers/archivebox'
 require_relative 'memexrag/nlp/spacy_model_registry'
 require_relative 'memexrag/processors/ruby-docling'
 require_relative 'memexrag/processors/multilingual'
@@ -37,10 +36,6 @@ require_relative 'memexrag/database'
 require_relative 'memexrag/command'
 
 # require_relative 'memexrag/workflow_orchestrator'
-
-require_relative 'memexrag/bots/support_faq_bot'
-require_relative 'memexrag/bots/base_bot'
-require_relative 'memexrag/bots/echo_bot'
 
 # Jongleur::WorkerTask is a class that defines a task to be executed by Jongleur.
 # class Jongleur::WorkerTask
