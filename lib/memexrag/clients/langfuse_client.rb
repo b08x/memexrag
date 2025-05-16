@@ -2,6 +2,7 @@
 
 require 'pycall'
 require 'json' # For parsing potential error details or configs
+require 'yaml' # For YAML export
 
 # LangfuseClient: A Ruby interface to the Langfuse Python SDK for prompt management.
 module LangfuseClient
@@ -179,6 +180,116 @@ module LangfuseClient
       end
       raise LangfuseClient::Error,
             "Python prompt object missing expected attribute for conversion: #{e.message}. Object type: #{py_obj_class_name_str}. Attributes: #{py_obj_dir_str}"
+    end
+
+    # Exports the prompt data to the specified format (YAML or Markdown).
+    #
+    # @param format [Symbol, String] The desired export format. Accepts `:yaml` or `:markdown`.
+    # @return [String] The prompt data formatted as a string in the specified format.
+    # @raise [ArgumentError] if the format is unsupported.
+    def export(format:)
+      format_sym = format.to_s.downcase.to_sym
+      case format_sym
+      when :yaml
+        _to_yaml_string
+      when :markdown
+        _to_markdown_string
+      else
+        raise ArgumentError, "Unsupported export format: '#{format}'. Supported formats are :yaml, :markdown."
+      end
+    end
+
+    private
+
+    # Generates a YAML string representation of the prompt.
+    # @return [String] The YAML formatted string.
+    def _to_yaml_string
+      prompt_data = {
+        'name' => @name,
+        'version' => @version,
+        'prompt_content' => @prompt_content,
+        'type' => @type,
+        'config' => @config,
+        'labels' => @labels,
+        'tags' => @tags,
+        'commit_message' => @commit_message
+      }
+      YAML.dump(prompt_data)
+    end
+
+    # Generates a Markdown string representation of the prompt.
+    # @return [String] The Markdown formatted string.
+    def _to_markdown_string
+      md_parts = []
+
+      md_parts << '## Name'
+      md_parts << @name.to_s
+      md_parts << ''
+
+      md_parts << '## Version'
+      md_parts << @version.to_s
+      md_parts << ''
+
+      md_parts << '## Type'
+      md_parts << @type.to_s
+      md_parts << ''
+
+      md_parts << '## Prompt Content'
+      if @type == PROMPT_TYPE_CHAT && @prompt_content.is_a?(Array)
+        if @prompt_content.empty?
+          md_parts << 'No chat messages.'
+        else
+          @prompt_content.each do |message|
+            role = message.is_a?(Hash) ? (message[:role] || message['role'] || 'unknown_role') : 'malformed_message'
+            content = message.is_a?(Hash) ? (message[:content] || message['content'] || '') : message.to_s
+            md_parts << "- #{role}: #{content}"
+          end
+        end
+      elsif @type == PROMPT_TYPE_TEXT
+        md_parts << '```text'
+        md_parts << @prompt_content.to_s
+        md_parts << '```'
+      else # Fallback for unknown type or malformed content
+        md_parts << '```'
+        md_parts << (@prompt_content || '').to_s # Ensure content is not nil
+        md_parts << '```'
+      end
+      md_parts << ''
+
+      md_parts << '## Config'
+      if @config && !@config.empty?
+        md_parts << '```yaml'
+        md_parts << @config.to_yaml.sub("---\n", '').strip # Remove YAML document start and strip
+        md_parts << '```'
+      else
+        md_parts << 'Not configured.'
+      end
+      md_parts << ''
+
+      md_parts << '## Labels'
+      if @labels && !@labels.empty?
+        @labels.each { |label| md_parts << "- #{label}" }
+      else
+        md_parts << 'No labels.'
+      end
+      md_parts << ''
+
+      md_parts << '## Tags'
+      if @tags && !@tags.empty?
+        @tags.each { |tag| md_parts << "- #{tag}" }
+      else
+        md_parts << 'No tags.'
+      end
+      md_parts << ''
+
+      md_parts << '## Commit Message'
+      md_parts << if @commit_message && !@commit_message.to_s.strip.empty?
+                    @commit_message.to_s
+                  else
+                    'N/A'
+                  end
+
+      md_parts.join("\n").strip
     end
   end
 

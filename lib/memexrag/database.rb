@@ -8,6 +8,8 @@ require 'redis'
 
 require 'ohm'
 require 'ohm/contrib'
+require 'ohm/timestamps'
+require 'ohm/json'
 
 redis_ohm_uri ||= ENV.fetch('REDIS_OHM_URI', nil)
 raise 'Env: REDIS_OHM_URI is not set' unless redis_ohm_uri
@@ -141,6 +143,9 @@ Sequel::Model.db = pg_connection_instance.db
 # If the DB connection isn't available, it's a critical issue for Sequel models.
 
 # require_relative 'models/sequel/document'
+
+require_relative 'models/ohm/chat_session'
+require_relative 'models/ohm/message'
 
 require_relative 'models/ohm/fileobject'
 require_relative 'models/ohm/document'

@@ -10,7 +10,7 @@ class Sentence < Ohm::Model
   attribute :text
 
   reference :paragraph, :Paragraph
-  reference :text_object, :TextObject
+  reference :page, :Page
 
   set :topics, :Topic
 

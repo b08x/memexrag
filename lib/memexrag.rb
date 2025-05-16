@@ -8,6 +8,7 @@ require 'json'
 require 'yaml'
 require 'jongleur'
 require 'ruby_llm'
+require 'time'
 
 require 'dotenv/load'
 
@@ -34,7 +35,12 @@ require_relative 'memexrag/clients/langfuse_client'
 require_relative 'memexrag/tools/spacy_nlp'
 require_relative 'memexrag/database'
 require_relative 'memexrag/command'
-require_relative 'memexrag/agents/agent'
+
+# require_relative 'memexrag/workflow_orchestrator'
+
+require_relative 'memexrag/bots/support_faq_bot'
+require_relative 'memexrag/bots/base_bot'
+require_relative 'memexrag/bots/echo_bot'
 
 # Jongleur::WorkerTask is a class that defines a task to be executed by Jongleur.
 # class Jongleur::WorkerTask
@@ -55,7 +61,6 @@ module MemexRAG
   Config.load
   puts '...configuration loaded'
   sleep 1
-
   def self.root
     File.dirname __dir__
   end

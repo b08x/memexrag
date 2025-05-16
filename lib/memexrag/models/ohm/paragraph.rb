@@ -7,7 +7,6 @@ class Paragraph < Ohm::Model
 
   attribute :text
 
-  reference :text_object, :TextObject
   reference :page, :Page
 
   set :topics, :Topic

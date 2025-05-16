@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 # File: lib/spacy_model_registry.rb
+# https://g.co/gemini/share/7b3250e7e121
 # (Ensure ruby-spacy is available, e.g., require 'spacy-ruby')
 # If Spacy module is not globally available, adjust the require path.
 
