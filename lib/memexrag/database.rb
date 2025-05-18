@@ -68,7 +68,7 @@ class PGConnect
   def create_tables
     logger.info "Creating tables if they don't aleady exist"
 
-    @db.create_table?(:documents) do
+    @db.create_table?(:chunks) do
       uuid :id, primary_key: true, default: Sequel.function(:gen_random_uuid)
       text :pageContent, null: false
       jsonb :metadata
@@ -107,6 +107,7 @@ class PGConnect
       @db.drop_table?(:collections)
       @db.drop_table?(:files)
       @db.drop_table?(:documents)
+      @db.drop_table?(:chunks)
       @db.disconnect
       logger.debug('Database and tables dropped successfully')
     rescue StandardError => e
@@ -161,6 +162,7 @@ Sequel::Model.db = pg_connection_instance.db
 
 # require_relative 'models/sequel/document'
 
+require_relative 'models/sequel/chunk'
 require_relative 'models/sequel/document_record'
 require_relative 'models/sequel/collection'
 require_relative 'models/sequel/item'
