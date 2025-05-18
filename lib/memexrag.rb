@@ -9,6 +9,8 @@ require 'yaml'
 require 'jongleur'
 require 'ruby_llm'
 require 'time'
+require 'redis'
+require 'mimemagic'
 
 require 'dotenv/load'
 
@@ -25,29 +27,42 @@ require_relative 'memexrag/logging'
 
 include Logging
 
+require_relative 'memexrag/ui'
+
 require_relative 'memexrag/nlp/spacy_model_registry'
 require_relative 'memexrag/processors/ruby-docling'
 require_relative 'memexrag/processors/multilingual'
+require_relative 'memexrag/processors/loader'
+require_relative 'memexrag/processors/gtranslate'
 require_relative 'memexrag/clients/dify_client'
 require_relative 'memexrag/clients/flowise_client'
 require_relative 'memexrag/clients/langfuse_client'
+require_relative 'memexrag/tools/semantic_search'
 require_relative 'memexrag/tools/spacy_nlp'
+require_relative 'memexrag/tools/docling_converter'
+require_relative 'memexrag/tools/image_converter'
 require_relative 'memexrag/database'
 require_relative 'memexrag/command'
 
-# require_relative 'memexrag/workflow_orchestrator'
+require_relative 'memexrag/filediscovery'
+require_relative 'memexrag/fileobject'
+require_relative 'memexrag/parser'
+
+require_relative 'memexrag/import'
+
+require_relative 'memexrag/workflow_orchestrator'
 
 # Jongleur::WorkerTask is a class that defines a task to be executed by Jongleur.
-# class Jongleur::WorkerTask
-#   # Initialize a Redis connection.
-#   begin
-#     redis_connection = RedisConnection.new
-#     @redis_tracker = redis_connection.redis
-#   rescue Redis::CannotConnectError
-#     puts "heeeey! Unable to connect to redis\n"
-#     exit
-#   end
-# end
+class Jongleur::WorkerTask
+  # Initialize a Redis connection.
+  begin
+    redis_connection = Redis.new(host: 'localhost', port: 6379, db: 15)
+    @redis = redis_connection
+  rescue Redis::CannotConnectError
+    puts "heeeey! Unable to connect to redis\n"
+    exit
+  end
+end
 
 require_relative 'memexrag/cli'
 
