@@ -7,8 +7,6 @@ require 'pgvector' # Required for the plugin
 # module MemexRAG
 #   module SequelModels # Optional namespace
 class DocumentRecord < Sequel::Model(PGConnect.instance.db[:documents]) # Explicitly connect to the 'documents' table
-  # If PGConnect.instance.db is already Sequel::Model.db, then just `class DocumentRecord < Sequel::Model` is fine
-  # and Sequel will infer the table name from the class name (documents).
   # However, being explicit with `Model(DB[:documents])` is safer if multiple DBs or complex setups exist.
 
   plugin :pgvector, :embedding # Register the 'embedding' column with the pgvector plugin
@@ -34,5 +32,3 @@ class DocumentRecord < Sequel::Model(PGConnect.instance.db[:documents]) # Explic
   #   ).limit(k)
   # end
 end
-#   end
-# end
