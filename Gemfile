@@ -104,3 +104,9 @@ gem "highline", "~> 3.1"
 gem "mimemagic", "~> 0.4.3"
 
 gem "google-cloud-translate-v2", "~> 1.1"
+
+gem "bm25f", "~> 0.2.6"
+
+gem "sublayer", "~> 0.2.8"
+
+gem "nokogiri", "~> 1.18"

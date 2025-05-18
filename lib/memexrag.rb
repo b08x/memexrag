@@ -11,6 +11,7 @@ require 'ruby_llm'
 require 'time'
 require 'redis'
 require 'mimemagic'
+require 'sublayer'
 
 require 'dotenv/load'
 
