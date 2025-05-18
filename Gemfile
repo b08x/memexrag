@@ -16,6 +16,7 @@ group :development, :test do
   gem 'rubocop-shopify'
   gem 'rubocop-thread_safety'
   gem 'solargraph'
+  gem 'ruby-lsp'
 end
 
 gem 'pry'
@@ -91,3 +92,15 @@ gem "rubyzip", "~> 2.4"
 gem "mutex_m", "~> 0.3.0"
 
 gem "mutex", "~> 1.0"
+
+gem "pry-bond", "~> 0.0.1"
+
+gem "langchainrb", "~> 0.19.5"
+
+gem "pdf-reader", "~> 2.14"
+
+gem "highline", "~> 3.1"
+
+gem "mimemagic", "~> 0.4.3"
+
+gem "google-cloud-translate-v2", "~> 1.1"

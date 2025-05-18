@@ -4,8 +4,6 @@
 # the application will execute even if it's
 # Postgres database.
 
-require 'redis'
-
 require 'ohm'
 require 'ohm/contrib'
 require 'ohm/timestamps'
@@ -69,18 +67,35 @@ class PGConnect
 
   def create_tables
     logger.info "Creating tables if they don't aleady exist"
-    @db.create_table?(:files) do
-      primary_key :id, type: :uuid, default: Sequel.function(:gen_random_uuid)
-      column :path, String
-      column :type, String
-      index %i[path type]
-    end
+
     @db.create_table?(:documents) do
+      uuid :id, primary_key: true, default: Sequel.function(:gen_random_uuid)
+      text :pageContent, null: false
+      jsonb :metadata
+      column :embedding, 'vector(1024)' # BAAI/bge-large-en-v1.5 has 1024 dimensions
+
+      index :embedding, type: :hnsw, opclass: :vector_cosine_ops # HNSW index for cosine similarity
+    end
+
+    @db.create_table?(:collections) do
+      primary_key :id, type: :Bignum
+      column :name, String, unique: true
+
+      index %i[name]
+    end
+
+    @db.create_table?(:items) do
       primary_key :id, type: :uuid, default: Sequel.function(:gen_random_uuid)
-      column :title, String
-      column :content, String
-      column :metadata, :jsonb # Added metadata column
-      index %i[title content metadata]
+      column :path, String, unique: true
+      column :name, String
+      column :extension, String
+      column :type, String
+      column :mime, String
+      column :size, Integer
+
+      foreign_key :collection_id, :collections
+
+      index %i[path name extension type] # %i creates an array of symbols
     end
   end
 
@@ -88,6 +103,8 @@ class PGConnect
   def drop_tables
     logger.debug('Dropping tables')
     begin
+      @db.drop_table?(:items)
+      @db.drop_table?(:collections)
       @db.drop_table?(:files)
       @db.drop_table?(:documents)
       @db.disconnect
@@ -144,10 +161,10 @@ Sequel::Model.db = pg_connection_instance.db
 
 # require_relative 'models/sequel/document'
 
-require_relative 'models/ohm/chat_session'
-require_relative 'models/ohm/message'
+require_relative 'models/sequel/document_record'
+require_relative 'models/sequel/collection'
+require_relative 'models/sequel/item'
 
-require_relative 'models/ohm/fileobject'
 require_relative 'models/ohm/document'
 require_relative 'models/ohm/topic'
 require_relative 'models/ohm/page'

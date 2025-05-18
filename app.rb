@@ -152,28 +152,64 @@ get '/retrieve_result' do
     return { error: 'Missing sidekiq job ID parameter.' }.to_json
   end
 
-  output_path = nil # To ensure cleanup happens correctly in ensure block
+  # First, check if we already have the JSON in Redis
+  redis_key = "extraction_json:#{sidekiq_jid}"
+  converter = docling_converter # Instantiate once
+  cached_json = nil
   begin
-    converter = docling_converter
+    cached_json = converter.redis.call('GET', redis_key)
+  rescue StandardError => e
+    logger.error "Error accessing Redis for key #{redis_key}: #{e.message}"
+    # Proceed as if cache miss, or handle error differently if Redis is critical
+  end
+
+  if cached_json
+    logger.info "Found cached extraction results for JID #{sidekiq_jid}"
+    begin
+      cached_data = JSON.parse(cached_json)
+
+      # Find the first text file for backward compatibility
+      text_file = cached_data['files']&.find { |f| !f['is_binary'] && f['content'] }
+
+      if text_file
+        return {
+          success: true,
+          text_content: text_file['content'],
+          cached: true,
+          file_count: cached_data.dig('metadata', 'total_files'),
+          redis_key: redis_key
+        }.to_json
+      else
+        logger.warn "No suitable text file found in cached data for JID #{sidekiq_jid}. Cached data might be incomplete or only contain binary files."
+        # Fall through to re-extraction if no usable text file is in cache,
+        # or return an error/specific response if desired.
+        # For now, we fall through.
+      end
+    rescue JSON::ParserError => e
+      logger.error "Failed to parse cached JSON for JID #{sidekiq_jid}: #{e.message}. Proceeding with re-extraction."
+      # Fall through to re-extraction
+    end
+  end
+
+  # If we don't have cached data or failed to use it, proceed with the original extraction
+  output_path = nil
+  begin
     extraction_result = converter.retrieve_and_extract_zip_result(sidekiq_jid)
 
     if extraction_result[:status] == 'SUCCESS'
-      output_path = extraction_result[:output_path] # Assign here for cleanup
+      output_path = extraction_result[:output_path]
       extracted_text = nil
       logger.info "Extraction successful for JID #{sidekiq_jid}. Output path: #{output_path}"
 
       # Find the primary text file (adjust logic as needed)
-      # Prioritize .txt, then look for other common text formats
-      # Consider character encoding issues here
       text_file_paths = Dir.glob("#{output_path}/**/*.txt") +
-                        Dir.glob("#{output_path}/**/*.{md,html,xml,json}") # Add other types if necessary
+                        Dir.glob("#{output_path}/**/*.{md,html,xml,json}")
 
-      text_file_path = text_file_paths.first # Take the first match
+      text_file_path = text_file_paths.first
 
       if text_file_path && File.exist?(text_file_path)
         logger.info "Found extracted text file: #{text_file_path}"
         begin
-          # Attempt to read as UTF-8, handle potential encoding errors
           extracted_text = File.read(text_file_path, encoding: 'UTF-8')
         rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError => e
           logger.warn "Encoding error reading #{text_file_path} as UTF-8: #{e.message}. Trying ISO-8859-1."
@@ -181,22 +217,66 @@ get '/retrieve_result' do
             extracted_text = File.read(text_file_path, encoding: 'ISO-8859-1').encode('UTF-8')
           rescue StandardError => fallback_error
             logger.error "Failed to read #{text_file_path} even with fallback encoding: #{fallback_error.message}"
-            # Decide: return error or empty string? Returning error for now.
             status 500
             return { success: false, error: "Failed to read extracted file due to encoding issues: #{text_file_path}" }.to_json
           end
         end
-        { success: true, text_content: extracted_text }.to_json
+
+        # Store the extraction results in Redis as JSON
+        cache_result = converter.store_extraction_results_as_json(sidekiq_jid, output_path)
+
+        if cache_result[:status] == 'SUCCESS'
+          logger.info "Successfully cached extraction results in Redis with key: #{cache_result[:redis_key]}"
+          response_data = {
+            success: true,
+            text_content: extracted_text,
+            cached: false, # It was just cached now, not retrieved from cache
+            file_count: cache_result[:file_count],
+            redis_key: cache_result[:redis_key]
+          }
+        else
+          logger.warn "Failed to cache extraction results: #{cache_result[:error]}"
+          # Return success with text, but indicate caching failed
+          response_data = {
+            success: true,
+            text_content: extracted_text,
+            cached: false,
+            caching_error: cache_result[:error]
+          }
+        end
+
+        response_data.to_json
       else
-        logger.warn "No primary text file (.txt, .md, .html, etc.) found in extraction directory: #{output_path} for JID #{sidekiq_jid}"
-        status 404
-        { success: false, error: 'Extracted text content file not found in the result.' }.to_json
+        logger.warn "No primary text file found in extraction directory: #{output_path} for JID #{sidekiq_jid}"
+
+        # Still cache the results even if no text file was found (e.g., archive of images)
+        cache_result = converter.store_extraction_results_as_json(sidekiq_jid, output_path)
+
+        if cache_result[:status] == 'SUCCESS'
+          logger.info "Cached extraction results (no primary text file found) in Redis with key: #{cache_result[:redis_key]}"
+          status 404
+          {
+            success: false,
+            error: 'Extracted text content file not found in the result, but other files may have been cached.',
+            cached: false, # Just cached
+            file_count: cache_result[:file_count],
+            redis_key: cache_result[:redis_key]
+          }.to_json
+        else
+          logger.warn "Failed to cache extraction results (no primary text file found): #{cache_result[:error]}"
+          status 404
+          {
+            success: false,
+            error: 'Extracted text content file not found in the result, and caching also failed.',
+            caching_error: cache_result[:error]
+          }.to_json
+        end
       end
     else
       # Log the specific error from the converter
       error_message = extraction_result[:error] || 'Failed to retrieve or extract result.'
       logger.error "Result retrieval/extraction failed for JID #{sidekiq_jid}: #{error_message}"
-      status 500 # Or map Docling errors to appropriate HTTP statuses if possible
+      status 500
       { success: false, error: error_message }.to_json
     end
   rescue StandardError => e
@@ -204,13 +284,12 @@ get '/retrieve_result' do
     status 500
     { success: false, error: "Server error retrieving result: #{e.message}" }.to_json
   ensure
-    # !!! CRITICAL: Clean up the temporary extraction directory !!!
+    # Clean up the temporary extraction directory
     if output_path && Dir.exist?(output_path)
       begin
         FileUtils.remove_entry_secure(output_path)
         logger.info "Successfully cleaned up extraction directory: #{output_path}"
       rescue StandardError => e
-        # Log this error, but don't let it fail the request if text was already potentially sent
         logger.error "!!! Failed to clean up extraction directory #{output_path}: #{e.message}"
       end
     end
