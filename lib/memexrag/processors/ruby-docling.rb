@@ -23,7 +23,7 @@ module MemexRAG
       def initialize(conversion_service_url: nil, redis_url: nil)
         @conversion_service_url = conversion_service_url || DEFAULT_CONVERSION_SERVICE_URL
         @redis_url = redis_url || DEFAULT_REDIS_URL
-        @redis_client = nil # Memoized client
+        @redis = nil # Memoized client
       end
 
       def submit_file(file_path)
@@ -272,7 +272,7 @@ module MemexRAG
       private
 
       def redis
-        @redis_client ||= RedisClient.config(url: @redis_url).new_client
+        @redis = Redis.new(host: 'localhost', port: 6379, db: 0)
       end
 
       public # Make the orchestrator public if it's part of the class's API

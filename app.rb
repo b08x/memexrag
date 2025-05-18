@@ -4,7 +4,7 @@
 # Sinatra application with file upload and NLP workflow proxy.
 lib_dir = File.expand_path(File.join(__dir__, 'lib'))
 $LOAD_PATH.unshift lib_dir unless $LOAD_PATH.include?(lib_dir)
-p lib_dir
+
 require 'sinatra'
 require 'slim'
 require 'fileutils'
@@ -28,7 +28,7 @@ SUPPORTED_LANGUAGES = %w[en es ta fr de].freeze # Define supported languages
 # --- Routes ---
 
 get '/' do
-  "<h1>Welcome!</h1><p>Go to <a href='/translate'>/translate</a> to see the translation page.</p>"
+  "<h1>Welcome!</h1><p>Go to <a href='/radiology/translate'>/translate</a> to see the translation page.</p>"
 end
 
 post '/upload' do
@@ -56,243 +56,88 @@ end
 UPLOAD_FOLDER = File.join(settings.public_folder, 'uploads', 'temp_docling')
 FileUtils.mkdir_p(UPLOAD_FOLDER) unless Dir.exist?(UPLOAD_FOLDER)
 
-# Helper to instantiate the converter
-def docling_converter
-  # Ensure environment variables for URLs are set or use defaults
-  MemexRAG::Processors::DoclingConverter.new
+# Helper to instantiate the tool (could be done per request or cached if stateless)
+def docling_tool
+  @docling_tool ||= MemexRAG::Tools::DoclingConverter.new
+  # Ensure any initialization errors in the tool are handled or logged.
+  # The tool's constructor in lib/memexrag/tools/docling_converter.rb
+  # already has a begin/rescue for its internal processor.
 end
 
-# --- Route 1: Handle Initial File Upload ---
-post '/upload_document' do
+# --- New Synchronous Conversion Route ---
+post '/convert_document' do
   content_type :json
+  logger.info "Received request for synchronous document conversion."
 
-  unless params[:file] && (tmpfile = params[:file][:tempfile]) && (name = params[:file][:filename])
-    logger.warn 'Upload attempt failed: Missing file parameters.'
+  unless params[:file] && (tmpfile = params[:file][:tempfile]) && (original_filename = params[:file][:filename])
+    logger.warn "Upload attempt failed: Missing file parameters."
     status 400
-    return { error: 'No file uploaded or invalid parameters.' }.to_json
+    return { status: 'FAILURE', error: 'No file uploaded or invalid parameters.' }.to_json
   end
 
-  # Securely save the uploaded file temporarily
-  temp_path = nil # Define outside begin block for ensure clause
-  submit_result = nil # Define outside begin block for ensure clause
+  temp_saved_path = nil
   begin
-    # Add a timestamp or unique ID to prevent overwrites if needed
-    original_filename = name
+    # Securely save the uploaded file temporarily
+    # This path is where the tool will read the file from
     timestamp = Time.now.to_i
     sanitized_filename = original_filename.gsub(/[^0-9A-Za-z.\-_]/, '_')
-    temp_path = File.join(settings.uploads_dir, "#{timestamp}-#{sanitized_filename}")
+    temp_dir = File.join(settings.uploads_dir, 'tool_processing') # Specific subdir for these temp files
+    FileUtils.mkdir_p(temp_dir) unless Dir.exist?(temp_dir)
+    temp_saved_path = File.join(temp_dir, "#{timestamp}-#{sanitized_filename}")
 
-    FileUtils.copy(tmpfile.path, temp_path)
-    logger.info "Uploaded file saved temporarily to: #{temp_path}"
+    FileUtils.copy(tmpfile.path, temp_saved_path)
+    logger.info "File '#{original_filename}' saved temporarily to: #{temp_saved_path} for synchronous tool processing."
 
-    # Submit to DoclingConverter
-    converter = docling_converter
-    submit_result = converter.submit_file(temp_path)
+    # Instantiate and execute the DoclingConverterTool
+    # The tool's execute method is blocking and will handle submission, polling, and result structuring.
+    tool_execution_result = docling_tool.execute(file_path: temp_saved_path)
 
-    if submit_result && submit_result[:task_id]
-      logger.info "File '#{sanitized_filename}' submitted for conversion, task_id: #{submit_result[:task_id]}"
-      status 202 # Accepted
-      # Return the task ID and status endpoint path to the client
-      submit_result.to_json
+    # The tool_execution_result is expected to be a hash like:
+    # {
+    #   status: 'SUCCESS' | 'FAILURE',
+    #   message: '...', (on success)
+    #   error: '...', (on failure)
+    #   details: '...', (on failure)
+    #   task_id: '...', (Docling service task_id)
+    #   output_path: '...', (path to the extracted files from the tool's perspective)
+    #   files: [...], (top-level files, for backward compat)
+    #   file_count: ..., (top-level count, for backward compat)
+    #   directory_structure: {...}, (the new rich structure)
+    #   structure_metadata: {...} (metadata about the structure)
+    # }
+
+    if tool_execution_result[:status] == 'SUCCESS'
+      logger.info "DoclingConverterTool executed successfully for file: #{original_filename}. Task ID: #{tool_execution_result[:task_id]}"
+      # The output_path from the tool is likely within a Dir.mktmpdir created by the *tool itself*.
+      # We might want to clean that up if the tool doesn't do it, but the tool should manage its own temp dirs.
+      # The key is that the response already contains the structured data.
+      status 200
+      tool_execution_result.to_json
     else
-      logger.error "Failed to submit file '#{sanitized_filename}' for conversion via DoclingConverter."
-      status 500
-      { error: 'Failed to submit file for conversion.' }.to_json
+      logger.error "DoclingConverterTool reported failure for file: #{original_filename}. Error: #{tool_execution_result[:error]}"
+      status 500 # Or a more appropriate error code based on tool_execution_result
+      tool_execution_result.to_json
     end
+
   rescue StandardError => e
-    logger.error "Error during file upload/submission for '#{name}': #{e.message}\n#{e.backtrace.join("\n")}"
+    logger.error "Unexpected error during synchronous conversion for '#{original_filename}': #{e.class} - #{e.message}"
+    e.backtrace.first(10).each { |line| logger.error line }
     status 500
-    { error: "Server error during upload: #{e.message}" }.to_json
+    { status: 'FAILURE', error: "Server error during conversion: #{e.message}" }.to_json
   ensure
-    # Clean up the initially uploaded temp file from Sinatra/Rack if it exists
-    # tmpfile.close! if tmpfile # Sinatra might handle this
-
-    # Clean up the file we copied to settings.uploads_dir ONLY IF submission failed immediately
-    if temp_path && File.exist?(temp_path) && (!submit_result || !submit_result[:task_id])
-      FileUtils.rm_f(temp_path)
-      logger.info "Cleaned up failed upload temp file: #{temp_path}"
+    # Clean up the temporarily saved uploaded file
+    if temp_saved_path && File.exist?(temp_saved_path)
+      FileUtils.rm_f(temp_saved_path)
+      logger.info "Cleaned up temporary input file: #{temp_saved_path}"
     end
-    # NOTE: If submission *succeeded*, the file at temp_path is potentially needed by the async process.
-    # A robust cleanup strategy for these files (if conversion succeeds/fails later) is recommended.
-  end
-end
-
-# --- Route 2: Check Task Status ---
-get '/check_task_status' do
-  content_type :json
-  status_endpoint = params[:endpoint]
-
-  unless status_endpoint && !status_endpoint.empty?
-    logger.warn 'Status check failed: Missing endpoint parameter.'
-    status 400
-    return { error: 'Missing status endpoint parameter.' }.to_json
-  end
-
-  begin
-    converter = docling_converter
-    # Using default polling settings defined within the check_status method
-    status_result = converter.check_status(status_endpoint)
-    logger.debug "Status check result for #{status_endpoint}: #{status_result[:status]}"
-    status_result.to_json
-  rescue StandardError => e
-    logger.error "Error checking task status for endpoint #{status_endpoint}: #{e.message}\n#{e.backtrace.join("\n")}"
-    status 500
-    { error: "Server error checking status: #{e.message}" }.to_json
-  end
-end
-
-# --- Route 3: Retrieve and Extract Result Text ---
-get '/retrieve_result' do
-  content_type :json
-  sidekiq_jid = params[:jid]
-
-  unless sidekiq_jid && !sidekiq_jid.empty?
-    logger.warn 'Result retrieval failed: Missing JID parameter.'
-    status 400
-    return { error: 'Missing sidekiq job ID parameter.' }.to_json
-  end
-
-  # First, check if we already have the JSON in Redis
-  redis_key = "extraction_json:#{sidekiq_jid}"
-  converter = docling_converter # Instantiate once
-  cached_json = nil
-  begin
-    cached_json = converter.redis.call('GET', redis_key)
-  rescue StandardError => e
-    logger.error "Error accessing Redis for key #{redis_key}: #{e.message}"
-    # Proceed as if cache miss, or handle error differently if Redis is critical
-  end
-
-  if cached_json
-    logger.info "Found cached extraction results for JID #{sidekiq_jid}"
-    begin
-      cached_data = JSON.parse(cached_json)
-
-      # Find the first text file for backward compatibility
-      text_file = cached_data['files']&.find { |f| !f['is_binary'] && f['content'] }
-
-      if text_file
-        return {
-          success: true,
-          text_content: text_file['content'],
-          cached: true,
-          file_count: cached_data.dig('metadata', 'total_files'),
-          redis_key: redis_key
-        }.to_json
-      else
-        logger.warn "No suitable text file found in cached data for JID #{sidekiq_jid}. Cached data might be incomplete or only contain binary files."
-        # Fall through to re-extraction if no usable text file is in cache,
-        # or return an error/specific response if desired.
-        # For now, we fall through.
-      end
-    rescue JSON::ParserError => e
-      logger.error "Failed to parse cached JSON for JID #{sidekiq_jid}: #{e.message}. Proceeding with re-extraction."
-      # Fall through to re-extraction
-    end
-  end
-
-  # If we don't have cached data or failed to use it, proceed with the original extraction
-  output_path = nil
-  begin
-    extraction_result = converter.retrieve_and_extract_zip_result(sidekiq_jid)
-
-    if extraction_result[:status] == 'SUCCESS'
-      output_path = extraction_result[:output_path]
-      extracted_text = nil
-      logger.info "Extraction successful for JID #{sidekiq_jid}. Output path: #{output_path}"
-
-      # Find the primary text file (adjust logic as needed)
-      text_file_paths = Dir.glob("#{output_path}/**/*.txt") +
-                        Dir.glob("#{output_path}/**/*.{md,html,xml,json}")
-
-      text_file_path = text_file_paths.first
-
-      if text_file_path && File.exist?(text_file_path)
-        logger.info "Found extracted text file: #{text_file_path}"
-        begin
-          extracted_text = File.read(text_file_path, encoding: 'UTF-8')
-        rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError => e
-          logger.warn "Encoding error reading #{text_file_path} as UTF-8: #{e.message}. Trying ISO-8859-1."
-          begin
-            extracted_text = File.read(text_file_path, encoding: 'ISO-8859-1').encode('UTF-8')
-          rescue StandardError => fallback_error
-            logger.error "Failed to read #{text_file_path} even with fallback encoding: #{fallback_error.message}"
-            status 500
-            return { success: false, error: "Failed to read extracted file due to encoding issues: #{text_file_path}" }.to_json
-          end
-        end
-
-        # Store the extraction results in Redis as JSON
-        cache_result = converter.store_extraction_results_as_json(sidekiq_jid, output_path)
-
-        if cache_result[:status] == 'SUCCESS'
-          logger.info "Successfully cached extraction results in Redis with key: #{cache_result[:redis_key]}"
-          response_data = {
-            success: true,
-            text_content: extracted_text,
-            cached: false, # It was just cached now, not retrieved from cache
-            file_count: cache_result[:file_count],
-            redis_key: cache_result[:redis_key]
-          }
-        else
-          logger.warn "Failed to cache extraction results: #{cache_result[:error]}"
-          # Return success with text, but indicate caching failed
-          response_data = {
-            success: true,
-            text_content: extracted_text,
-            cached: false,
-            caching_error: cache_result[:error]
-          }
-        end
-
-        response_data.to_json
-      else
-        logger.warn "No primary text file found in extraction directory: #{output_path} for JID #{sidekiq_jid}"
-
-        # Still cache the results even if no text file was found (e.g., archive of images)
-        cache_result = converter.store_extraction_results_as_json(sidekiq_jid, output_path)
-
-        if cache_result[:status] == 'SUCCESS'
-          logger.info "Cached extraction results (no primary text file found) in Redis with key: #{cache_result[:redis_key]}"
-          status 404
-          {
-            success: false,
-            error: 'Extracted text content file not found in the result, but other files may have been cached.',
-            cached: false, # Just cached
-            file_count: cache_result[:file_count],
-            redis_key: cache_result[:redis_key]
-          }.to_json
-        else
-          logger.warn "Failed to cache extraction results (no primary text file found): #{cache_result[:error]}"
-          status 404
-          {
-            success: false,
-            error: 'Extracted text content file not found in the result, and caching also failed.',
-            caching_error: cache_result[:error]
-          }.to_json
-        end
-      end
-    else
-      # Log the specific error from the converter
-      error_message = extraction_result[:error] || 'Failed to retrieve or extract result.'
-      logger.error "Result retrieval/extraction failed for JID #{sidekiq_jid}: #{error_message}"
-      status 500
-      { success: false, error: error_message }.to_json
-    end
-  rescue StandardError => e
-    logger.error "Unexpected error retrieving result for JID #{sidekiq_jid}: #{e.class} - #{e.message}\n#{e.backtrace.join("\n")}"
-    status 500
-    { success: false, error: "Server error retrieving result: #{e.message}" }.to_json
-  ensure
-    # Clean up the temporary extraction directory
-    if output_path && Dir.exist?(output_path)
-      begin
-        FileUtils.remove_entry_secure(output_path)
-        logger.info "Successfully cleaned up extraction directory: #{output_path}"
-      rescue StandardError => e
-        logger.error "!!! Failed to clean up extraction directory #{output_path}: #{e.message}"
-      end
-    end
+    # Note: The output_path from the tool (where the ZIP was extracted)
+    # should ideally be cleaned up by the tool or have a defined lifecycle.
+    # If `DoclingConverterTool#execute` uses `Dir.mktmpdir` without a block,
+    # that temp dir might be left behind. It's better if `retrieve_and_extract_zip_result`
+    # within the processor, or the tool itself, handles cleanup of its own extraction directory
+    # *after* data (like `directory_structure`) has been gathered.
+    # The `DoclingConverter` processor in `ruby-docling.rb` *does* cleanup its extraction dir if it created it.
+    # The `DoclingConverterTool` uses the processor, so that cleanup should happen.
   end
 end
 

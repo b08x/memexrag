@@ -1,305 +1,204 @@
-/! views/radiology_translate.slim
+/ views/radiology_translate.slim
 
 doctype html
 html lang="en"
   head
     meta charset="UTF-8"
     meta name="viewport" content="width=device-width, initial-scale=1.0"
-    title Radiology IT Support - Document Translation
+    title Radiology Translation & Analysis | MemexRAG
+    
     script src="https://cdn.tailwindcss.com"
-    link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    /! Link to external CSS if you move styles out
-    / link rel="stylesheet" href="/css/radiology_translate.css"
-    style
-      | @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
-      | @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil&display=swap'); /* Ensure Tamil font is loaded */
+    javascript:
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              tamil: ['Noto Sans Tamil', 'sans-serif'],
+            },
+            // Example: If you wanted to define border-b-[3px] via theme
+            // borderWidth: {
+            //   '3': '3px',
+            // }
+          }
+        },
+        plugins: [
+          // For Play CDN, plugins are often added differently or might need specific CDN versions
+          // The require('@tailwindcss/typography') syntax is for Node.js environments.
+          // For Play CDN, typography is often included by default or via a separate script.
+          // If it's not working, you might need to find a CDN build of the typography plugin
+          // or include its styles manually. For now, let's assume the Play CDN handles basic prose.
+        ],
+      };
+    
+    link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Tamil:wght@400;700&display=swap" rel="stylesheet"
+    / Your local style.css should primarily contain custom components or overrides not covered by Tailwind utilities.
+    link rel="stylesheet" href="/css/style.css"
 
-      | body { font-family: 'Roboto', sans-serif; background-color: #0f172a; color: #e2e8f0; }
-      | .text-box { min-height: 400px; scrollbar-width: thin; scrollbar-color: #334155 #1e293b; }
-      | .text-box::-webkit-scrollbar { width: 8px; }
-      | .text-box::-webkit-scrollbar-track { background: #1e293b; }
-      | .text-box::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 4px; }
-      | .highlight { background-color: rgba(74, 222, 128, 0.3); transition: background-color 0.3s; }
-      | .tamil-font { font-family: 'Noto Sans Tamil', sans-serif; font-size: 1.05rem; line-height: 1.8; }
-      | @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-      | .loading { animation: pulse 1.5s infinite; }
-      | .tab-content { display: none; }
-      | .tab-content.active { display: block; }
-      | .tab-button { transition: all 0.3s ease; }
-      | .tab-button.active { background-color: #1e293b; border-bottom: 3px solid #10b981; }
-      | #previewContainer { border: 2px dashed #334155; border-radius: 0.5rem; min-height: 300px; position: relative; }
-      | #previewContainer.has-preview { border: none; }
-      | #previewImage, #previewVideo { max-width: 100%; max-height: 400px; display: none; }
-      | .drop-zone-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: rgba(15, 23, 42, 0.7); z-index: 10; border-radius: 0.5rem; }
-      | .ocr-highlight { background-color: rgba(234, 179, 8, 0.3); border: 1px dashed rgba(234, 179, 8, 0.7); }
+  body.bg-slate-50.text-slate-800.flex.flex-col.min-h-screen.font-sans
+    / Header
+    header.bg-slate-800.text-white.shadow-lg
+      .container.mx-auto.p-4.flex.justify-between.items-center
+        div.flex.items-center
+          i.fas.fa-brain.text-3xl.mr-3.text-emerald-400
+          h1.text-2xl.font-semibold MemexRAG Radiology Suite
+        nav
+          a.text-slate-300.hover:text-emerald-400.px-3 href="#" Reports
+          a.text-slate-300.hover:text-emerald-400.px-3 href="#" Settings
+          a.text-slate-300.hover:text-emerald-400.px-3 href="#" Help
 
-  body.min-h-screen
-    .container.mx-auto.px-4.py-8
-      /! Header
-      header.flex.justify-between.items-center.mb-8
-        .flex.items-center.space-x-3
-          .bg-emerald-600.p-3.rounded-lg
-            i.fas.fa-language.text-white.text-2xl
-          div
-            h1.text-2xl.font-bold.text-white Radiology IT Support
-            p.text-sm.text-slate-400 Multilingual Support System
-        .flex.space-x-4
-          /! TODO: Add links or functionality to History/Settings buttons
-          button.bg-slate-800.hover:bg-slate-700.text-slate-300.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
-            i.fas.fa-history
-            span History
-          button.bg-slate-800.hover:bg-slate-700.text-slate-300.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
-            i.fas.fa-cog
-            span Settings
+    / Main Content Area
+    main.container.mx-auto.p-4.md:p-6.lg:p-8.flex-grow
+      / Tabs for navigation
+      .tabs.mb-6.border-b.border-slate-300
+        / Note: 'border-b-3' is not a standard Tailwind class. Use 'border-b-[3px]' or 'border-b-2' or 'border-b-4'
+        button.tab-button.py-3.px-5.mr-1.focus:outline-none.font-medium data-tab="textTranslationTab" class="active text-white bg-slate-800 border-b-[3px] border-emerald-500"
+          i.fas.fa-language.mr-2
+          | Text & Document Translation
+        button.tab-button.py-3.px-5.focus:outline-none.font-medium data-tab="mediaAnalysisTab" class="text-slate-500 hover:text-slate-700"
+          i.fas.fa-camera-retro.mr-2
+          | Media Analysis (Screenshots/UI)
 
-      /! Tabs Navigation
-      .flex.border-b.border-slate-700.mb-6
-        button.tab-button.active.px-6.py-3.font-medium.text-white data-tab="text-translation"
-          i.fas.fa-align-left.mr-2
-          | Text Translation
-        button.tab-button.px-6.py-3.font-medium.text-slate-400.hover:text-white data-tab="media-analysis"
-          i.fas.fa-image.mr-2
-          | Screenshot/Screencast Analysis
-
-      /! Text Translation Tab
-      #text-translation.tab-content.active
-        /! Translation Controls
-        .bg-slate-800.rounded-xl.p-6.mb-6.shadow-lg
-          .flex.flex-col.md:flex-row.md:items-center.md:justify-between.space-y-4.md:space-y-0
-            .flex.items-center.space-x-4
-              div
-                label.block.text-sm.font-medium.text-slate-400.mb-1 for="sourceLangSelect" Source Language
-                .relative
-                  select#sourceLangSelect.bg-slate-900.border.border-slate-700.text-slate-300.rounded-lg.px-4.py-2.pr-8.appearance-none.focus:ring-2.focus:ring-emerald-500.focus:border-emerald-500
-                    /! Populate dynamically from Sinatra route -> @source_languages
-                    - @source_languages ||= [['en', 'English'], ['es', 'Spanish'], ['fr', 'French'], ['de', 'German']]
-                    - @source_languages.each do |code, name|
-                      option value=code selected=(code == 'en') = name
-                  .pointer-events-none.absolute.inset-y-0.right-0.flex.items-center.px-2.text-slate-500
-                    i.fas.fa-chevron-down
-              .text-slate-500
-                i.fas.fa-exchange-alt
-              div
-                label.block.text-sm.font-medium.text-slate-400.mb-1 for="targetLangSelect" Target Language
-                .relative
-                  select#targetLangSelect.bg-slate-900.border.border-slate-700.text-slate-300.rounded-lg.px-4.py-2.pr-8.appearance-none.focus:ring-2.focus:ring-emerald-500.focus:border-emerald-500
-                    /! Populate dynamically from Sinatra route -> @target_languages
-                    - @target_languages ||= [['ta', 'Tamil'], ['hi', 'Hindi'], ['te', 'Telugu'], ['ml', 'Malayalam']]
-                    - @target_languages.each do |code, name|
-                      option value=code selected=(code == 'ta') = name
-                  .pointer-events-none.absolute.inset-y-0.right-0.flex.items-center.px-2.text-slate-500
-                    i.fas.fa-chevron-down
-
-            .flex.space-x-3
-              button#translateBtn.bg-emerald-600.hover:bg-emerald-700.text-white.px-6.py-2.rounded-lg.flex.items-center.space-x-2.transition
-                i.fas.fa-exchange-alt
-                span Translate
-              button#uploadDocBtn.border.border-slate-600.hover:bg-slate-700.text-slate-300.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
-                i.fas.fa-upload.mr-2
-                span Upload Document
-              input#docUploadInput type="file" accept=".txt,.pdf,.docx" class="hidden"
-
-        /! Translation Area
+      / Tab Content: Text & Document Translation
+      #textTranslationTab.tab-content.active
         .grid.grid-cols-1.lg:grid-cols-2.gap-6
-          /! Original Text
-          .bg-slate-800.rounded-xl.p-6.shadow-lg
+          / Input Area (Original Text / Document Upload)
+          .bg-white.p-6.rounded-lg.shadow-md
+            h2.text-xl.font-semibold.mb-4.text-slate-700 Original Content
+            .flex.justify-between.items-center.mb-3
+              div
+                label.block.text-sm.font-medium.text-slate-500 for="sourceLangSelect" Source Language:
+                select#sourceLangSelect.mt-1.block.w-full.pl-3.pr-10.py-2.text-base.border-slate-300.focus:outline-none.focus:ring-emerald-500.focus:border-emerald-500.sm:text-sm.rounded-md
+                  - @source_languages ||= [['en', 'English'], ['ta', 'Tamil']]
+                  - @source_languages.each do |lang_code, lang_name|
+                    option value=lang_code selected=(lang_code == 'en') = lang_name
+              div
+                button#clearOriginalBtn.text-sm.text-slate-500.hover:text-emerald-600
+                  i.fas.fa-times-circle.mr-1
+                  | Clear Input
+
+            label.block.text-sm.font-medium.text-slate-500 for="originalText"
+              span#originalLangLabel English
+              |  Text (or paste document content here)
+            textarea#originalText.mt-1.block.w-full.h-60.p-3.border.border-slate-300.rounded-md.shadow-sm.focus:ring-emerald-500.focus:border-emerald-500.placeholder-slate-400 placeholder="Enter text to translate or upload a document..."
+            .flex.justify-between.items-center.mt-2
+              p#originalWordCount.text-sm.text-slate-500 0 words
+              button#translateBtn.bg-emerald-500.hover:bg-emerald-600.text-white.font-semibold.py-2.px-4.rounded-md.transition.duration-150.ease-in-out.flex.items-center
+                i.fas.fa-exchange-alt.mr-2
+                | Translate Text
+
+            hr.my-4.border-slate-200
+
+            h3.text-md.font-semibold.mb-2.text-slate-700 Upload Document for Processing
+            p.text-xs.text-slate-500.mb-2 Supported: .txt, .pdf, .doc, .docx
+            input#docUploadInput.hidden type="file" accept=".txt,.pdf,.doc,.docx"
+            button#uploadDocBtn.w-full.bg-blue-500.hover:bg-blue-600.text-white.font-semibold.py-2.px-4.rounded-md.transition.duration-150.ease-in-out.flex.items-center.justify-center
+              i.fas.fa-upload.mr-2
+              span Upload Document
+
+            #docUploadProgress.w-full.bg-slate-200.rounded-full.h-2.5.mt-3.hidden
+              #docUploadBar.bg-blue-600.h-2.5.rounded-full style="width: 0%"
+            p#docUploadPercent.text-center.text-sm.text-slate-500.mt-1
+
+            #docProcessingSpinner.mt-3.text-center.text-slate-600.hidden
+              i.fas.fa-cog.fa-spin.text-2xl.mr-2.text-blue-500
+              span Processing document on server...
+
+            #uploadStatusIndicator.mt-3.text-sm.p-2.rounded-md
+
+            #extractedDocContentContainer.mt-4.p-4.bg-slate-100.rounded-md.border.border-slate-200.max-h-96.overflow-y-auto.text-xs
+              / Extracted document structure will be rendered here by JS
+
+          / Output Area (Translated Text)
+          .bg-white.p-6.rounded-lg.shadow-md
+            h2.text-xl.font-semibold.mb-4.text-slate-700 Translation Result
+            .flex.justify-between.items-center.mb-3
+              div
+                label.block.text-sm.font-medium.text-slate-500 for="targetLangSelect" Target Language:
+                select#targetLangSelect.mt-1.block.w-full.pl-3.pr-10.py-2.text-base.border-slate-300.focus:outline-none.focus:ring-emerald-500.focus:border-emerald-500.sm:text-sm.rounded-md
+                  - @target_languages ||= [['ta', 'Tamil'], ['en', 'English']]
+                  - @target_languages.each do |lang_code, lang_name|
+                    option value=lang_code selected=(lang_code == 'ta') = lang_name
+            
+            label.block.text-sm.font-medium.text-slate-500
+              span#translatedLangLabel Tamil
+              |  Translation
+            / Corrected structure for the translation container:
+            div id="translatedTextContainer" class="mt-1 p-3 min-h-[240px] border border-slate-300 rounded-md bg-slate-50 overflow-y-auto"
+              div id="loadingIndicator" class="flex flex-col items-center justify-center h-full text-slate-400"
+                i class="fas fa-language text-4xl mb-3"
+                p 
+                  | Translation will appear here
+              div id="actualTranslation" class="hidden prose prose-sm max-w-none"
+                / Translated content will be injected here by JS
+
+            .flex.justify-between.items-center.mt-2
+              p#translatedWordCount.text-sm.text-slate-500 0 words
+              / Future: Add confidence score or feedback options
+
+      / Tab Content: Media Analysis (Structure similar to above, ensure classes are correct)
+      #mediaAnalysisTab.tab-content.hidden
+        .grid.grid-cols-1.lg:grid-cols-2.gap-6
+          / Media Upload & Preview Area
+          .bg-white.p-6.rounded-lg.shadow-md
+            h2.text-xl.font-semibold.mb-4.text-slate-700 Upload Media for Analysis
+            p.text-sm.text-slate-500.mb-3 Supported: Images (PNG, JPG), Videos (MP4, MOV)
+
+            #previewContainer.relative.w-full.h-80.border-2.border-dashed.border-slate-300.rounded-lg.flex.items-center.justify-center.bg-slate-50.transition-all.duration-200.ease-in-out.group.hover:border-emerald-500.hover:bg-slate-100
+              #dropZoneOverlay.absolute.inset-0.flex.flex-col.items-center.justify-center.text-slate-400.pointer-events-none.group-hover:text-emerald-600
+                i.fas.fa-cloud-upload-alt.text-4xl.mb-2
+                p Drag & Drop Image/Video or Click to Upload
+              input#mediaUpload.absolute.inset-0.w-full.h-full.opacity-0.cursor-pointer type="file" accept="image/png, image/jpeg, image/gif, video/mp4, video/quicktime, video/webm"
+              img#previewImage.hidden.max-w-full.max-h-full.object-contain alt="Media Preview"
+              video#previewVideo.hidden.max-w-full.max-h-full controls=""
+
+            .flex.justify-between.items-center.mt-4
+              button#clearMediaBtn.text-sm.text-slate-500.hover:text-red-600
+                i.fas.fa-trash-alt.mr-1
+                | Clear Media
+              .space-x-2
+                button#extractTextBtn.bg-sky-500.hover:bg-sky-600.text-white.font-medium.py-2.px-3.text-sm.rounded-md
+                  i.fas.fa-file-alt.mr-1
+                  | OCR
+                button#analyzeUiBtn.bg-indigo-500.hover:bg-indigo-600.text-white.font-medium.py-2.px-3.text-sm.rounded-md
+                  i.fas.fa-object-group.mr-1
+                  | UI Elements
+                button#translateMediaBtn.bg-purple-500.hover:bg-purple-600.text-white.font-medium.py-2.px-3.text-sm.rounded-md
+                  i.fas.fa-globe-americas.mr-1
+                  | Translate Extracted
+
+            h3.text-md.font-semibold.mt-6.mb-2.text-slate-700 Load Sample Screenshots
+            .flex.flex-wrap.gap-2
+              button.bg-slate-200.hover:bg-slate-300.text-slate-700.text-xs.py-1.px-2.rounded onclick="loadSampleImage('ris_login')" RIS Login
+              button.bg-slate-200.hover:bg-slate-300.text-slate-700.text-xs.py-1.px-2.rounded onclick="loadSampleImage('pacs_config')" PACS Config
+              button.bg-slate-200.hover:bg-slate-300.text-slate-700.text-xs.py-1.px-2.rounded onclick="loadSampleImage('worklist_error')" Worklist Error
+              button.bg-slate-200.hover:bg-slate-300.text-slate-700.text-xs.py-1.px-2.rounded onclick="loadSampleImage('dicom_viewer')" DICOM Viewer
+
+          / Media Analysis Results Area
+          .bg-white.p-6.rounded-lg.shadow-md
             .flex.justify-between.items-center.mb-4
-              h2.text-lg.font-semibold.text-white Original Text (<span id="originalLangLabel">English</span>)
-              .flex.space-x-2
-                /! TODO: Implement microphone input
-                button.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Input via Microphone"
-                  i.fas.fa-microphone
-                /! TODO: Implement expand functionality
-                button.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Expand View"
-                  i.fas.fa-expand
-            .bg-slate-900.rounded-lg.p-4.border.border-slate-700
-              textarea#originalText.w-full.bg-transparent.text-slate-300.outline-none.resize-none.text-box placeholder="Enter text to translate or upload a document..." rows="15"
-
-            /! **** UPLOAD STATUS INDICATOR ****
-            #uploadStatusIndicator.text-slate-400.text-sm.mt-2.h-6.flex.items-center.space-x-2
-              /! Status messages and spinner will appear here via JS
-
-            .flex.justify-between.items-center.mt-3.text-sm.text-slate-500
-              div
-                i.fas.fa-keyboard.mr-1
-                span#originalWordCount 0 words
-              div
-                button#clearOriginalBtn.text-slate-400.hover:text-white.transition
-                  i.fas.fa-trash-alt.mr-1
-                  span Clear
-
-          /! Translated Text
-          .bg-slate-800.rounded-xl.p-6.shadow-lg
-            .flex.justify-between.items-center.mb-4
-              h2.text-lg.font-semibold.text-white Translated Text (<span id="translatedLangLabel">Tamil</span>)
-              .flex.space-x-2
-                /! TODO: Implement text-to-speech
-                button#speakTranslatedBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Speak Text"
-                  i.fas.fa-volume-up
-                button#copyTranslatedBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Copy Text"
-                  i.fas.fa-copy
-                /! TODO: Implement expand functionality
-                button.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Expand View"
-                  i.fas.fa-expand
-            .bg-slate-900.rounded-lg.p-4.border.border-slate-700
-              #translatedTextContainer.w-full.text-slate-300.text-box style="min-height: 300px;"
-                #loadingIndicator.text-center.py-20.text-slate-500
-                  i.fas.fa-language.text-4xl.mb-3
-                  p Translation will appear here
-                #actualTranslation.hidden
-                  /! Content populated by JS
-
-            .flex.justify-between.items-center.mt-3.text-sm.text-slate-500
-              div
-                i.fas.fa-keyboard.mr-1
-                span#translatedWordCount 0 words
-              div
-                button#downloadTranslatedBtn.text-emerald-400.hover:text-emerald-300.transition
+              h2.text-xl.font-semibold.text-slate-700 Analysis Results
+              .space-x-2
+                button#copyResultsBtn.text-slate-500.hover:text-emerald-600.text-sm
+                  i.fas.fa-copy.mr-1
+                  | Copy
+                button#downloadResultsBtn.text-slate-500.hover:text-emerald-600.text-sm
                   i.fas.fa-download.mr-1
-                  span Download
+                  | Download
 
-        /! Additional Features (Populate dynamically)
-        .mt-8.grid.grid-cols-1.md:grid-cols-3.gap-6
-          /! Glossary
-          .bg-slate-800.rounded-xl.p-6.shadow-lg
-            .flex.items-center.space-x-3.mb-4
-              .bg-blue-600.p-2.rounded-lg
-                i.fas.fa-book.text-white
-              h3.text-lg.font-semibold.text-white Radiology Glossary
-            .space-y-3
-              - @glossary_items ||= [{term: 'RIS', definition: 'Radiology Information System'}, {term: 'PACS', definition: 'Picture Archiving and Communication System'}, {term: 'DICOM', definition: 'Digital Imaging and Communications in Medicine'}]
-              - if @glossary_items.empty?
-                p.text-slate-500 No glossary items available.
-              - else
-                - @glossary_items.each do |item|
-                  .bg-slate-700.p-3.rounded-lg
-                    .flex.justify-between.items-start
-                      div
-                        p.font-medium.text-white = item[:term]
-                        p.text-sm.text-slate-400 = item[:definition]
-                      /! TODO: Implement 'Add to Translation' functionality
-                      button.text-blue-400.hover:text-blue-300.text-sm
-                        i.fas.fa-plus.mr-1
-                        | Add
+            #mediaLoadingIndicator.hidden.flex.flex-col.items-center.justify-center.h-full.text-slate-400
+              i.fas.fa-cogs.fa-spin.text-3xl.mr-2.text-emerald-500
+              p Analyzing media...
+            #mediaResultsPlaceholder.flex.flex-col.items-center.justify-center.h-full.text-slate-400
+              i.fas.fa-microscope.text-4xl.mb-3
+              p Analysis results will appear here
+            #actualMediaResults.hidden.prose.prose-sm.max-w-none.h-96.overflow-y-auto.p-3.border.border-slate-200.rounded-md.bg-slate-50
+              / Analysis content will be injected by JS
 
-          /! Recent Translations
-          .bg-slate-800.rounded-xl.p-6.shadow-lg
-            .flex.items-center.space-x-3.mb-4
-              .bg-purple-600.p-2.rounded-lg
-                i.fas.fa-clock.text-white
-              h3.text-lg.font-semibold.text-white Recent Translations
-            .space-y-3
-              - @recent_translations ||= [{title: 'RIS-PACS integration guide', langs: 'English → Tamil', time: '2 hours ago'}, {title: 'Troubleshooting network issues', langs: 'English → Tamil', time: '1 day ago'}, {title: 'User manual for radiologists', langs: 'English → Tamil', time: '3 days ago'}]
-              - if @recent_translations.empty?
-                p.text-slate-500 No recent translations.
-              - else
-                - @recent_translations.each do |tx|
-                  .bg-slate-700.p-3.rounded-lg.hover:bg-slate-600.transition.cursor-pointer
-                    p.font-medium.text-white.truncate = tx[:title]
-                    .flex.justify-between.items-center.mt-1
-                      span.text-xs.text-slate-400 = tx[:langs]
-                      span.text-xs.text-slate-500 = tx[:time]
+    / Footer
+    footer.bg-slate-700.text-slate-300.text-center.p-4.mt-auto
+      p &copy; #{Time.now.year} MemexRAG Solutions. Advanced AI for Radiology IT.
 
-          /! Translation Memory
-          .bg-slate-800.rounded-xl.p-6.shadow-lg
-            .flex.items-center.space-x-3.mb-4
-              .bg-amber-600.p-2.rounded-lg
-                i.fas.fa-database.text-white
-              h3.text-lg.font-semibold.text-white Translation Memory
-            .bg-slate-900.rounded-lg.p-4.border.border-slate-700
-              .flex.items-center.justify-between.mb-3
-                span.text-sm.font-medium.text-slate-300 Matched Segments
-                span#tmMatchPercentage.text-xs.bg-emerald-900.text-emerald-300.px-2.py-1.rounded 0% match
-              #tmResults.text-sm.space-y-3
-                /! Populated by JS based on original text input
-                p.text-slate-500 Translation memory results will appear here.
-
-      /! Screenshot/Screencast Analysis Tab
-      #media-analysis.tab-content
-        /! ... (Keep existing media analysis content) ...
-        .bg-slate-800.rounded-xl.p-6.mb-6.shadow-lg
-            h2.text-xl.font-semibold.text-white.mb-4 Analyze Radiology IT Support Media
-            p.text-slate-400.mb-6 Upload screenshots or screencasts of Radiology IT systems to extract and translate text, identify UI elements, and get contextual help.
-
-            .grid.grid-cols-1.lg:grid-cols-2.gap-6
-              /! Upload and Preview Section
-              .bg-slate-800.rounded-xl.p-6.shadow-lg
-                .flex.justify-between.items-center.mb-4
-                  h3.text-lg.font-semibold.text-white Upload Media
-                  .flex.space-x-2
-                    /! TODO: Implement screen capture
-                    button#captureBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Capture Screen"
-                      i.fas.fa-camera
-                    button#clearMediaBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Clear Media"
-                      i.fas.fa-trash-alt
-
-                #previewContainer.mb-4
-                  #dropZoneOverlay.drop-zone-overlay
-                    i.fas.fa-cloud-upload-alt.text-4xl.text-slate-500.mb-3
-                    p.text-slate-400.mb-2 Drag & drop screenshot or screencast here
-                    p.text-sm.text-slate-500 or
-                    label.mt-3.bg-emerald-600.hover:bg-emerald-700.text-white.px-4.py-2.rounded-lg.cursor-pointer.transition for="mediaUpload"
-                      i.fas.fa-upload.mr-2
-                      | Select File
-                      input#mediaUpload type="file" accept="image/*,video/*" class="hidden"
-                  img#previewImage alt="Preview of uploaded image"
-                  video#previewVideo controls=""
-
-                .flex.flex-wrap.gap-3.mb-4
-                  button#extractTextBtn.bg-blue-600.hover:bg-blue-700.text-white.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
-                    i.fas.fa-font
-                    span Extract Text (OCR)
-                  button#analyzeUiBtn.bg-purple-600.hover:bg-purple-700.text-white.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
-                    i.fas.fa-object-group
-                    span Analyze UI Elements
-                  button#translateMediaBtn.bg-emerald-600.hover:bg-emerald-700.text-white.px-4.py-2.rounded-lg.flex.items-center.space-x-2.transition
-                    i.fas.fa-language
-                    span Translate Extracted Text
-
-                .bg-slate-900.rounded-lg.p-4.border.border-slate-700
-                  label.block.text-sm.font-medium.text-slate-400.mb-2 for="mediaTargetLangSelect" Target Language for Translation
-                  .relative
-                    select#mediaTargetLangSelect.bg-slate-800.border.border-slate-700.text-slate-300.rounded-lg.px-4.py-2.pr-8.w-full.appearance-none.focus:ring-2.focus:ring-emerald-500.focus:border-emerald-500
-                      /! Populate dynamically from Sinatra route -> @target_languages
-                      - @target_languages.each do |code, name|
-                        option value=code selected=(code == 'ta') = name
-                    .pointer-events-none.absolute.inset-y-0.right-0.flex.items-center.px-2.text-slate-500
-                      i.fas.fa-chevron-down
-
-              /! Analysis Results Section
-              .bg-slate-800.rounded-xl.p-6.shadow-lg
-                .flex.justify-between.items-center.mb-4
-                  h3.text-lg.font-semibold.text-white Analysis Results
-                  .flex.space-x-2
-                    button#copyResultsBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Copy Results"
-                      i.fas.fa-copy
-                    button#downloadResultsBtn.text-slate-400.hover:text-white.p-2.rounded-full.hover:bg-slate-700.transition title="Download Results"
-                      i.fas.fa-download
-
-                .bg-slate-900.rounded-lg.p-4.border.border-slate-700.h-full
-                  #analysisResults.text-slate-300.text-box
-                    #mediaLoadingIndicator.loading.text-center.py-20.text-slate-500.hidden
-                      i.fas.fa-spinner.fa-spin.text-4xl.mb-3
-                      p Analyzing media content...
-                    #mediaResultsPlaceholder.text-center.py-20.text-slate-500
-                      i.fas.fa-search.text-4xl.mb-3
-                      p Extracted text and analysis will appear here
-                    #actualMediaResults.hidden.space-y-4
-                      /! Populated by JS after analysis API calls
-
-
-        /! Sample Radiology UI Screens
-        .bg-slate-800.rounded-xl.p-6.shadow-lg.mt-6
-          h3.text-lg.font-semibold.text-white.mb-4 Common Radiology IT Screens
-          p.text-slate-400.mb-4 Quick access to sample screens for analysis practice:
-
-          .grid.grid-cols-2.md:grid-cols-4.gap-4
-            - sample_screens = [{id: 'ris_login', text: 'RIS Login', img_text: 'RIS+Login'}, {id: 'pacs_config', text: 'PACS Config', img_text: 'PACS+Config'}, {id: 'worklist_error', text: 'Worklist Error', img_text: 'Worklist+Error'}, {id: 'dicom_viewer', text: 'DICOM Viewer', img_text: 'DICOM+Viewer'}]
-            - sample_screens.each do |screen|
-              .cursor-pointer onclick="loadSampleImage('#{screen[:id]}')"
-                .bg-slate-700.rounded-lg.overflow-hidden
-                  img src="https://via.placeholder.com/300x200/1e293b/64748b?text=#{screen[:img_text]}" alt="#{screen[:text]} Screen" class="w-full h-32 object-cover"
-                p.text-sm.text-slate-300.mt-2.text-center = screen[:text]
-
-    /! Link to external JS if you move script out
+    / JavaScript file
     script src="/js/radiology_translate.js"
