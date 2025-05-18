@@ -59,7 +59,7 @@ module MemexRAG
         # Initialize BM25F model
         begin
           @bm25f_model = BM25F.new
-          logger.info "[SemanticSearch] Initialized BM25F model"
+          logger.info '[SemanticSearch] Initialized BM25F model'
         rescue StandardError => e
           logger.error "[SemanticSearch] Failed to initialize BM25F model: #{e.message}"
           @bm25f_model = nil
@@ -69,10 +69,10 @@ module MemexRAG
         # We just need to ensure the model is correctly set up.
         # If Chunk.db is not set, this would fail later.
         # This check is more about the application's overall DB setup.
-        unless PGConnect.instance&.db && Chunk.db
-          logger.fatal '[SemanticSearch] Database connection for Chunk model not available.'
-          # This indicates a setup issue.
-        end
+        return if PGConnect.instance&.db && Chunk.db
+
+        logger.fatal '[SemanticSearch] Database connection for Chunk model not available.'
+        # This indicates a setup issue.
       end
 
       def execute(query:, k: 5, distance_metric: 'cosine', use_hybrid_search: true, vector_candidates: nil)
@@ -85,25 +85,25 @@ module MemexRAG
         begin
           # Determine number of vector candidates
           actual_vector_candidates = vector_candidates || (use_hybrid_search ? [k * 2, 20].min : k)
-          
+
           # Perform vector search
           vector_results = vector_search(query, actual_vector_candidates, distance_metric)
-          
+
           # If hybrid search is disabled or BM25F model is not available, return vector results
           unless use_hybrid_search && @bm25f_model
             formatted_results = format_results(vector_results)
             return formatted_results.to_json
           end
-          
+
           # Re-rank vector results using BM25F
           reranked_results = rerank_with_bm25f(query, vector_results)
-          
+
           # Limit to top k results
           final_results = reranked_results.first(k)
-          
+
           # Format results
           formatted_results = format_results(final_results)
-          
+
           formatted_results.to_json
         rescue Informers::Error => e
           logger.error "[SemanticSearch] Informers gem error: #{e.message}"
@@ -140,71 +140,70 @@ module MemexRAG
                   .all # Execute and get results
 
         logger.info "[SemanticSearch] Vector search found #{results.count} documents."
-        
+
         results
       end
 
       # BM25F preprocessing method
       def preprocess_for_bm25f(documents)
-        preprocessed_docs = documents.map do |doc|
+        documents.map do |doc|
           {
             id: doc.id,
             content: doc.pageContent,
             metadata: doc.metadata
           }
         end
-        
-        preprocessed_docs
       end
 
       # BM25F re-ranking method
       def rerank_with_bm25f(query, vector_results)
         return [] if vector_results.empty?
-        
+
         # Preprocess documents for BM25F
         documents = preprocess_for_bm25f(vector_results)
-        
+
         # Prepare documents for BM25F
         bm25f_docs = []
-        documents.each_with_index do |doc, idx|
+        documents.each_with_index do |doc, _idx|
           metadata = if doc[:metadata].is_a?(String)
-                      begin
-                        JSON.parse(doc[:metadata])
-                      rescue JSON::ParserError
-                        {}
-                      end
-                    else
-                      doc[:metadata] || {}
-                    end
-          
+                       begin
+                         JSON.parse(doc[:metadata])
+                       rescue JSON::ParserError
+                         {}
+                       end
+                     else
+                       doc[:metadata] || {}
+                     end
+
           # Extract title from metadata or use a default
           title = metadata['title'] || metadata[:title] || ''
-          
+
           bm25f_docs << {
             content: doc[:content] || '',
             title: title,
             id: doc[:id]
           }
         end
-        
+
         # Fit BM25F model
         @bm25f_model.fit(bm25f_docs, { content: 1.0, title: 0.5 })
-        
+
         # Score documents
         scores = @bm25f_model.score(query)
-        
+
         # Sort documents by score
         ranked_docs = []
         scores.each do |idx, score|
           next if score.nil? || score.zero? # Skip documents with zero score
+
           ranked_docs << [vector_results[idx], score]
         end
-        
+
         ranked_docs.sort_by! { |_, score| -score }
         ranked_results = ranked_docs.map { |doc, _| doc }
-        
+
         logger.info "[SemanticSearch] BM25F re-ranking complete. Ranked #{ranked_results.size} documents."
-        
+
         ranked_results
       end
 
