@@ -31,3 +31,6 @@ Gemfile.lock
 **/uploads/***
 **/test/***
 /roo_plans/
+MemexRAG.code-workspace
+
+memexrag.json
