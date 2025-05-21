@@ -183,60 +183,60 @@ module MemexRAG
       end
 
       # ... (store_extraction_results_as_json, determine_mime_type, binary_file?, redis methods as before) ...
-      def store_extraction_results_as_json(task_id, extraction_dir) # Changed arg for clarity
-        files_data = []
-        text_files_count = 0
-        binary_files_count = 0
+      # def store_extraction_results_as_json(task_id, extraction_dir) # Changed arg for clarity
+      #   files_data = []
+      #   text_files_count = 0
+      #   binary_files_count = 0
 
-        Dir.glob(File.join(extraction_dir, '**', '*')).each do |file_path|
-          next unless File.file?(file_path)
+      #   Dir.glob(File.join(extraction_dir, '**', '*')).each do |file_path|
+      #     next unless File.file?(file_path)
 
-          relative_path = file_path.sub("#{extraction_dir}/", '')
-          filename = File.basename(file_path)
-          size = File.size(file_path)
-          mime_type = determine_mime_type(file_path)
-          is_binary = binary_file?(file_path, mime_type)
+      #     relative_path = file_path.sub("#{extraction_dir}/", '')
+      #     filename = File.basename(file_path)
+      #     size = File.size(file_path)
+      #     mime_type = determine_mime_type(file_path)
+      #     is_binary = binary_file?(file_path, mime_type)
 
-          content_data = if is_binary
-                           binary_files_count += 1
-                           Base64.strict_encode64(File.binread(file_path))
-                         else
-                           text_files_count += 1
-                           begin
-                             File.read(file_path, encoding: 'UTF-8')
-                           rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError
-                             binary_files_count += 1 # Re-count as binary if fallback
-                             text_files_count -= 1
-                             Base64.strict_encode64(File.binread(file_path))
-                           end
-                         end
+      #     content_data = if is_binary
+      #                      binary_files_count += 1
+      #                      Base64.strict_encode64(File.binread(file_path))
+      #                    else
+      #                      text_files_count += 1
+      #                      begin
+      #                        File.read(file_path, encoding: 'UTF-8')
+      #                      rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError
+      #                        binary_files_count += 1 # Re-count as binary if fallback
+      #                        text_files_count -= 1
+      #                        Base64.strict_encode64(File.binread(file_path))
+      #                      end
+      #                    end
 
-          files_data << {
-            path: relative_path, filename: filename, mime_type: mime_type,
-            size: size, is_binary: is_binary || (content_data.is_a?(String) && content_data.encoding == Encoding::ASCII_8BIT), # Refined is_binary check
-            content: content_data
-          }
-        end
+      #     files_data << {
+      #       path: relative_path, filename: filename, mime_type: mime_type,
+      #       size: size, is_binary: is_binary || (content_data.is_a?(String) && content_data.encoding == Encoding::ASCII_8BIT), # Refined is_binary check
+      #       content: content_data
+      #     }
+      #   end
 
-        json_data = {
-          task_id: task_id, # Use task_id consistently
-          extraction_timestamp: Time.now.utc.iso8601,
-          files: files_data,
-          metadata: {
-            total_files: files_data.size, text_files: text_files_count,
-            binary_files: binary_files_count, original_extraction_path: extraction_dir
-          }
-        }
-        redis_key = "extraction_json:#{task_id}"
-        begin
-          redis.call('SET', redis_key, JSON.generate(json_data))
-          redis.call('EXPIRE', redis_key, 86_400)
-          { status: 'SUCCESS', redis_key: redis_key, file_count: files_data.size }
-        rescue StandardError => e
-          puts "Error storing extraction results in Redis: #{e.message}"
-          { status: 'FAILURE', error: "Failed to store results in Redis: #{e.message}" }
-        end
-      end
+      #   json_data = {
+      #     task_id: task_id, # Use task_id consistently
+      #     extraction_timestamp: Time.now.utc.iso8601,
+      #     files: files_data,
+      #     metadata: {
+      #       total_files: files_data.size, text_files: text_files_count,
+      #       binary_files: binary_files_count, original_extraction_path: extraction_dir
+      #     }
+      #   }
+      #   redis_key = "extraction_json:#{task_id}"
+      #   begin
+      #     redis.call('SET', redis_key, JSON.generate(json_data))
+      #     redis.call('EXPIRE', redis_key, 86_400)
+      #     { status: 'SUCCESS', redis_key: redis_key, file_count: files_data.size }
+      #   rescue StandardError => e
+      #     puts "Error storing extraction results in Redis: #{e.message}"
+      #     { status: 'FAILURE', error: "Failed to store results in Redis: #{e.message}" }
+      #   end
+      # end
 
       def determine_mime_type(file_path)
         extension = File.extname(file_path).downcase
