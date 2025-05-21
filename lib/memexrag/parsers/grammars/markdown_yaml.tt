@@ -1,0 +1,96 @@
+grammar MarkdownYaml
+  rule document
+    yaml_front_matter content
+  end
+
+  rule yaml_front_matter
+    '---' nl
+    (!'---' .)*
+    '---' nl
+  end
+
+  rule content
+    (section / text / code_block / table)*
+  end
+
+  rule section
+    heading content_block
+  end
+
+  rule heading
+    atx_heading / setext_heading
+  end
+
+  rule atx_heading
+    level:'#'+ space heading_text nl
+  end
+
+  rule setext_heading
+    heading_text nl setext_underline
+  end
+
+  rule setext_underline
+    ('=' / '-')+ nl
+  end
+
+  rule heading_text
+    (!nl .)+
+  end
+
+  rule content_block
+    (link / (!heading .))*
+  end
+
+  rule link
+    '[' link_text ']' '(' link_url ')'
+  end
+
+  rule link_text
+    (!']' .)*
+  end
+
+  rule link_url
+    (!')' .)*
+  end
+
+  rule text
+    (!heading .)+
+  end
+
+  rule code_block
+    '```' language? nl code_content '```' nl
+  end
+
+  rule language
+    (!nl .)+
+  end
+
+  rule code_content
+    (!'```' .)*
+  end
+
+  rule table
+    table_header table_rows
+  end
+
+  rule table_header
+    '|' table_cell ('|' table_cell)* '|' nl
+    '|' ('---' / ':---' / '---:' / ':---:')+ '|' nl
+  end
+
+  rule table_rows
+    ('|' table_cell ('|' table_cell)* '|' nl)+
+  end
+
+  rule table_cell
+    (!'|' .)+
+  end
+
+  rule space
+    [ \t]+
+  end
+
+  rule nl
+    [\n\r]+
+  end
+end

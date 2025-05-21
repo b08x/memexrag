@@ -1,0 +1,49 @@
+grammar MarkdownParser
+  rule document
+    (front_matter? sections)* <DocumentNode>
+  end
+
+  rule front_matter
+    '---' newline (line:(!'---' .)* newline)* '---' newline <FrontMatterNode>
+  end
+
+  rule sections
+    heading block* <SectionNode>
+  end
+
+  rule heading
+    hashes:('#'+) ' ' text:(!newline .)* newline <HeadingNode>
+  end
+
+  rule block
+    code_block / table / paragraph
+  end
+
+  rule code_block
+    '```' lang:([a-zA-Z]+)? newline content:(!'```' .)* '```' newline <CodeBlockNode>
+  end
+
+  rule table
+    (table_row newline)+ <TableNode>
+  end
+
+  rule table_row
+    '|' (table_cell '|')*
+  end
+
+  rule table_cell
+    (!'|' .)*
+  end
+
+  rule paragraph
+    text:(!newline .)+ newline+ <ParagraphNode>
+  end
+
+  rule newline
+    ('\r'? '\n')
+  end
+
+  rule text
+    (!newline .)+
+  end
+end
