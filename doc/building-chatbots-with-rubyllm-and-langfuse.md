@@ -611,7 +611,7 @@ puts feedback.content
        end
      rescue RubyLLM::Error => e
        # Log the error
-       Rails.logger.error("AI Service Error: #{e.message}")
+       logger.error("AI Service Error: #{e.message}")
        # Return graceful fallback response
        OpenStruct.new(content: "I'm sorry, I encountered an error. Please try again shortly.")
      end

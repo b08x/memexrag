@@ -34,3 +34,6 @@ Gemfile.lock
 MemexRAG.code-workspace
 
 memexrag.json
+
+/.goose/
+/.qodo/

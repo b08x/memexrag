@@ -194,9 +194,9 @@ post '/memexrag/proxy/translate' do
     # --- 2. Instantiate Service ---
     # Consider making this a singleton or request-scoped instance for efficiency later
     begin
-      translator = MemexRAG::Services::Translator.new
+      translator = MemexRAG::Tools::Translator.new
       logger.info 'Translator service instantiated successfully.'
-    rescue MemexRAG::Services::Translator::ConfigurationError => e
+    rescue MemexRAG::Tools::Translator::ConfigurationError => e
       logger.fatal "Failed to initialize Translator service due to configuration error: #{e.message}"
       halt 503, { error: 'Translation service is unavailable due to configuration issues.' }.to_json
     end
@@ -204,7 +204,7 @@ post '/memexrag/proxy/translate' do
     logger.info "Validation successful for #{source_lang} -> #{target_lang} request."
 
     # --- 3. Call Service Method ---
-    translated_text = translator.translate(
+    translated_text = translator.execute(
       text: text,
       source_lang: source_lang,
       target_lang: target_lang
@@ -222,13 +222,13 @@ post '/memexrag/proxy/translate' do
     logger.error "Failed to parse JSON payload: #{e.message}"
     status 400
     { error: "Invalid JSON payload: #{e.message}" }.to_json
-  rescue MemexRAG::Services::Translator::ProviderError => e
+  rescue MemexRAG::Tools::Translator::ProviderError => e
     logger.error "Translation provider error (#{e.provider}): #{e.message}"
     # Log original error details if present and helpful
     logger.error "Original error: #{e.original_error.inspect}" if e.original_error
     status 503 # Service Unavailable from the provider's perspective
     { error: "Translation service provider failed: #{e.message}" }.to_json
-  rescue MemexRAG::Services::Translator::TranslationError => e # Catch other specific translation errors
+  rescue MemexRAG::Tool::Translator::TranslationError => e # Catch other specific translation errors
     logger.error "Translation service error: #{e.message}"
     status 500
     { error: "Translation failed: #{e.message}" }.to_json

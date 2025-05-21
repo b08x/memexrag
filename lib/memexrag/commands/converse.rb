@@ -165,7 +165,6 @@ module MemexRAG
 
         # Corrected parameter description generation
         tool_params_description = tool_class.parameters.map do |param_obj| # param_obj is an instance of RubyLLM::Parameter
-
           name_symbol, details_obj = param_obj # param_obj is one [key, value] from the map iteration
           # where key is the name and value is the Parameter object.
 
@@ -183,7 +182,6 @@ module MemexRAG
           param_info
         end.join("\n          ")
 
-        # ... (rest of the prompt construction as before)
         base_prompt = <<~PROMPT
           You are a helpful AI assistant for the MemexRAG system, specializing in answering questions based on a collection of documents.
           You have access to a powerful tool called 'MemexRAG::Tools::SemanticSearch' to find information within these documents.

@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'pragmatic-segmenter'
 # This task segments the text content of a Document into smaller units.
 class SegmentText < Jongleur::WorkerTask
   # Performs the task logic to segment the text content.
@@ -11,12 +12,13 @@ class SegmentText < Jongleur::WorkerTask
   # The options for the segmenter.
   attr_accessor :options
 
-  def initialize
+  def initialize(text)
+    super
     @text = text
     @options = DEFAULT_OPTIONS.merge(opts)
     logger.debug "TextSegmenter initialized with options: #{@options}"
 
-    logger.info "Starting text segmentation"
+    logger.info 'Starting text segmentation'
     logger.debug "Input text type: #{@text.class}"
 
     if @text.instance_of?(Array)
@@ -43,12 +45,11 @@ class SegmentText < Jongleur::WorkerTask
 
   private
 
-
   # Segments an array of text.
   #
   # @return [Array] An array of segments.
   def segment_array
-    logger.debug "Segmenting array of strings"
+    logger.debug 'Segmenting array of strings'
     @text.flat_map do |txt|
       segment_string(txt)
     end

@@ -75,8 +75,6 @@ class Page < Ohm::Model
   attribute :number, Type::Integer
   attribute :metadata, Type::Hash
 
-  reference :document, :Document
-
   list :elements, :PageElement
 
   index :number
