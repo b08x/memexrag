@@ -21,9 +21,10 @@ class FileObject
   # Supported file types and their extensions
   FILE_TYPES = {
     text: %w[.txt .md .markdown .org],
-    pdf: %w[.pdf],
+    doc: %w[.pdf .docx],
     html: %w[.html .htm],
-    json: %w[.json .jsonl],
+    structured: %w[.json .jsonl .xml],
+    subtitle: %w[.srt .vtt],
     audio: %w[.mp3 .wav .ogg .flac .opus .m4a .aiff],
     video: %w[.mp4 .avi .mov .mkv .webm]
   }.freeze
@@ -106,8 +107,8 @@ class FileObject
   end
 
   def gather_basic_attributes
-    @name = @path.basename.to_s
     @extension = @path.extname.downcase
+    @name = @path.basename.to_s.gsub(/#{@extension}/, '')
     @type = determine_file_type
   end
 

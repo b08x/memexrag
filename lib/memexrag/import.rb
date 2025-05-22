@@ -3,15 +3,12 @@
 
 require 'parallel'
 class Import
-  attr_reader :collection, :source, :files
+  attr_reader :collection, :files
 
-  def initialize(source)
-    @source = source.respond_to?(:realdirpath) ? source : Pathname.new(source)
-    raise ArgumentError, "Source does not exist: #{source}" unless @source.exist?
-
+  def initialize(files)
     collection_name = UI.prompt.ask('Collection name?')
     @collection = Collection.find_or_create(collection_name)
-    @files = MemexRAG::FileDiscovery.discover(@source)
+    @files = files
   end
 
   def start
@@ -23,7 +20,7 @@ class Import
       in_processes: 1
     ) do |file_path|
       file_object = FileObject.new(file_path)
-      @collection.add_item(
+      item = @collection.add_item(
         path: file_object.path.cleanpath.to_s,
         name: file_object.name,
         type: file_object.type.to_s,
@@ -31,6 +28,19 @@ class Import
         extension: file_object.extension,
         size: file_object.size
       )
+      if %w[doc text].include?(item.type)
+        begin
+          item.add_document(
+            title: item.name
+          )
+        rescue Sequel::UniqueConstraintViolation => e
+          logger.warn "<'#{item.name}'> already exists in database\n#{e.message}"
+          item.add_document(
+            title: file_object.path.dirname.basename.to_s + '_' + file_object.name
+          )
+        end
+      end
+
       UI.say(:ok, "Added #{file_object}")
     rescue Sequel::UniqueConstraintViolation => e
       logger.warn "<'#{file_path}'> already exists in database\n#{e.message}"

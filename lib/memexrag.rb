@@ -1,9 +1,12 @@
 # frozen_string_literal: true
 
+APP_ROOT = File.expand_path('..', __dir__)
+DATA_DIR = File.join(APP_ROOT, 'data')
+
 require 'erb'
 require 'pry'
 require 'pry-stack_explorer'
-require 'thor'
+require 'drydock'
 require 'json'
 require 'yaml'
 require 'jongleur'
@@ -43,11 +46,12 @@ require_relative 'memexrag/tools/semantic_search'
 require_relative 'memexrag/tools/spacy_nlp'
 require_relative 'memexrag/tools/docling_converter'
 require_relative 'memexrag/tools/image_converter'
+
 require_relative 'memexrag/database'
+require_relative 'memexrag/fileobject'
 require_relative 'memexrag/command'
 
 require_relative 'memexrag/filediscovery'
-require_relative 'memexrag/fileobject'
 require_relative 'memexrag/parser'
 
 require_relative 'memexrag/import'
@@ -71,7 +75,9 @@ require_relative 'memexrag/cli'
 module MemexRAG
   class Error < StandardError; end
   Config.load
-  puts '...configuration loaded'
+  puts '...memexrag configuration loaded'
+  Config.rubyllm
+  puts '...ruby_llm configuration loaded'
   sleep 1
   def self.root
     File.dirname __dir__

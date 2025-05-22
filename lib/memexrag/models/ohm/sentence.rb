@@ -9,9 +9,6 @@ class Sentence < Ohm::Model
 
   attribute :text
 
-  reference :paragraph, :Paragraph
-  reference :page, :Page
-
   set :topics, :Topic
 
   collection :phrases, :Phrase

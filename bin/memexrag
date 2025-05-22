@@ -6,4 +6,12 @@ $LOAD_PATH.unshift lib_dir unless $LOAD_PATH.include?(lib_dir)
 
 require 'memexrag'
 
-MemexRAG::CLI.start(ARGV)
+# Traps the INT signal (Ctrl+C) and performs a graceful shutdown of the application.
+Signal.trap('INT') do
+  puts "\nInterrupt received. Shutting down gracefully..."
+  MemexRAG.shutdown
+  exit(0)
+end
+
+# Starts the Flowbots CLI with the provided command-line arguments.
+Drydock.run!(ARGV, $stdin) if Drydock.run? && !Drydock.has_run?

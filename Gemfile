@@ -110,3 +110,11 @@ gem "bm25f", "~> 0.2.6"
 gem "sublayer", "~> 0.2.8"
 
 gem "nokogiri", "~> 1.18"
+
+gem "treetop", "~> 1.6"
+
+gem "fiddle", "~> 1.1"
+
+gem "drydock", "~> 0.6.9"
+
+gem "redcarpet", "~> 3.6"

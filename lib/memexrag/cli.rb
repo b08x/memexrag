@@ -1,34 +1,57 @@
-# frozen_string_literal: true
+#!/usr/bin/env ruby
+# frozen_string_literal: false
 
 module MemexRAG
-  class CLI < Thor
-    class_option :model,
-                 type: :string,
-                 aliases: '-m',
-                 banner: 'MODEL_NAME',
-                 description: 'Global: Specify LLM model for any command that uses one.'
-    class_option :langfuse_prompt_name,
-                 type: :string,
-                 aliases: '-p',
-                 banner: 'PROMPT_NAME',
-                 description: 'Global: Name of Langfuse system prompt (if applicable to command/session).'
-    class_option :langfuse_prompt_version,
-                 type: :numeric,
-                 aliases: '-pv',
-                 banner: 'VERSION',
-                 description: 'Global: Version of Langfuse system prompt.'
-    class_option :langfuse_prompt_label,
-                 type: :string,
-                 aliases: '-pl',
-                 banner: 'LABEL',
-                 description: 'Global: Label of Langfuse system prompt.'
+  class CLI
+    extend Drydock
 
-    MemexRAG::Commands.constants.reject{ |command_class| command_class == :BaseCommand }.each do |command_class|
-      command = MemexRAG::Commands.const_get(command_class)
-      desc command.command_name, command.description
-      define_method(command.command_name) do |*args|
-        command.new(options).execute(*args)
+    default :welcome
+    debug :on
+
+    before do
+      @hostname = `cat /etc/hostname`.strip
+    end
+
+    about 'A friendly welcome to the Drydock'
+    command :welcome do
+      puts UI::Box.info_box("Hey! It's Flowbots!\n\nFor available commands:\n#{$0} --help")
+    end
+
+    usage "USAGE: #{$0} test [-f]"
+    about 'main menu'
+    option :f, :faster, 'A boolean value. Go even faster!'
+    command :menu do |obj|
+      if obj.option.faster
+        puts 'do something'
+      else
+        puts 'do something else'
       end
     end
-  end
-end
+
+    about 'workflows'
+    command :workflows do |_obj|
+      menu = WorkflowMenu.new
+      menu.display
+    end
+
+    # about "start osc server"
+    # command :osc do |_obj|
+    #   $logger.info "starting osc server"
+    #   Daemons.run(File.join(File.dirname(__FILE__), 'osc.rb'), $daemon_options)
+    # end
+
+    about 'import one or more files and/or folders'
+    option :u, :update, 'Update file objects'
+    command :import do |obj|
+      require 'pathname'
+
+      sources = obj.argv.map { |source| Pathname.new(source) }
+
+      sources.each do |source|
+        p source.exist?
+        # import = Import.new(source)
+        # import.start
+      end
+    end
+  end # end cli class
+end # end memexrag module
