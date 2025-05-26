@@ -1,8 +1,22 @@
 # frozen_string_literal: true
 
+require 'tty-config'
+
+CONFIG_DIR = File.join(Dir.home, '.config', 'memexrag').freeze
+
+begin
+  FileUtils.mkdir_p(CONFIG_DIR)
+rescue SystemCallError => e
+  logger.warn "Failed to create config directory: #{e.message}"
+end
+
 module MemexRAG
   module Config
     def self.load
+      File.join(File.dirname(__FILE__), 'config', 'ruby_llm.yml')
+    end
+
+    def self.rubyllm
       config_path = File.join(File.dirname(__FILE__), 'config', 'ruby_llm.yml')
 
       if File.exist?(config_path)

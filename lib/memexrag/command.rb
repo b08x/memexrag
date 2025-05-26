@@ -24,4 +24,4 @@ end
 
 require_relative 'commands/add'
 require_relative 'commands/example_command'
-require_relative 'commands/converse'
+require_relative 'commands/ingest'

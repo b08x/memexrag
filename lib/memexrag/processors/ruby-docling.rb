@@ -16,7 +16,7 @@ module MemexRAG
       DEFAULT_CONVERSION_SERVICE_URL = ENV.fetch('CONVERSION_SERVICE_URL', 'http://localhost:8000').freeze
       DEFAULT_REDIS_URL = ENV.fetch('REDIS_URL', 'redis://localhost:6379/0').freeze
       DEFAULT_MAX_ATTEMPTS = 60
-      DEFAULT_DELAY_SECONDS = 30
+      DEFAULT_DELAY_SECONDS = 10
 
       attr_reader :conversion_service_url, :redis_url
 

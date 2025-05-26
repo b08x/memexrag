@@ -1,13 +1,12 @@
 # llm_memory/parsers/markdown.rb
-require_relative 'base'
-require_relative 'markdown/ast_processor' # Require the new module
+
 require 'kramdown'
 require 'yaml'
 # Removed CSV require if table extraction logic moved to AstProcessor
 
 module MemexRAG
   module Parser
-    class Markdown < Base
+    class Markdown
       EXTENSIONS = ['.markdown', '.md'].freeze
       CONTENT_TYPES = ['text/markdown', 'text/plain'].freeze
 
@@ -68,19 +67,6 @@ module MemexRAG
         logger.debug("Parsing complete, returning #{chunks.size} chunks.")
         chunks # Return the array of chunks directly
       end
-
-      # Private methods process, format_for_rag, process_sections, process_X_chunks are now removed
-      # The element_text and extract_table_content logic needs to be moved
-      # into AstProcessor or a shared utility module.
-
-      # private
-      #   def process(...) -> Removed
-      #   def format_for_rag(...) -> Removed (Structure built by AstProcessor)
-      #   def process_sections(...) -> Moved and refactored into AstProcessor
-      #   def process_section_chunks(...) -> Logic incorporated into AstProcessor handlers
-      #   def process_subsection_chunks(...) -> Logic incorporated into AstProcessor handlers
-      #   def element_text(...) -> Moved to AstProcessor (or utility)
-      #   def extract_table_content(...) -> Moved to AstProcessor (or utility)
     end # class Markdown
   end # module Parser
 end # module MemexRAG

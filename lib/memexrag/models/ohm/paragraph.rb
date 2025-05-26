@@ -7,7 +7,7 @@ class Paragraph < Ohm::Model
 
   attribute :text
 
-  reference :page, :Page
+  reference :section, :Section
 
   set :topics, :Topic
 

@@ -53,9 +53,9 @@ module MemexRAG
         @initialization_error_message = nil
         begin
           # All models are now fetched from the central registry
-          @en_nlp = SpacyModelRegistry.get_model(ENG_MODEL)
-          @ta_nlp_sents = SpacyModelRegistry.get_model(TA_SENTENCE_MODEL)
-          @ta_nlp_ner = SpacyModelRegistry.get_model(TA_NER_MODEL)
+          @en_nlp = SpacyModelRegistry.load_model(ENG_MODEL)
+          @ta_nlp_sents = SpacyModelRegistry.load_model(TA_SENTENCE_MODEL)
+          @ta_nlp_ner = SpacyModelRegistry.load_model(TA_NER_MODEL)
         rescue StandardError => e
           # If any model fails to load from the registry, store the error message.
           # The processing methods will check this.

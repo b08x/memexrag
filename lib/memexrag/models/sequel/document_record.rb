@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'sequel'
-require 'pgvector' # Required for the plugin
-
 # Ensure DB is connected and Sequel::Model.db is set, typically in database.rb
 # module MemexRAG
 #   module SequelModels # Optional namespace

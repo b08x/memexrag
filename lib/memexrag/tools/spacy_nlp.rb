@@ -14,10 +14,10 @@ class SpacyNLP < RubyLLM::Tool
     super
     begin
       # Use the registry to get the model
-      @nlp = SpacyModelRegistry.get_model(SPACY_MODEL_NAME)
+      @nlp = SpacyModelRegistry.load_model(SPACY_MODEL_NAME)
     rescue StandardError => e
       # The registry now handles the direct loading error, so this catch
-      # is for errors from the registry itself (e.g., if get_model raised).
+      # is for errors from the registry itself (e.g., if load_model raised).
       @initialization_error = { error: "Failed to obtain spaCy model '#{SPACY_MODEL_NAME}' from registry. Details: #{e.message}" }
     end
   end

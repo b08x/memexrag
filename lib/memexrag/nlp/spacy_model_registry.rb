@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
-# File: lib/spacy_model_registry.rb
 # https://g.co/gemini/share/7b3250e7e121
-# (Ensure ruby-spacy is available, e.g., require 'spacy-ruby')
-# If Spacy module is not globally available, adjust the require path.
 
 require 'ruby-spacy'
 require 'mutex_m'
@@ -24,7 +21,7 @@ module SpacyModelRegistry
   # @param model_name [String] The name of the spaCy model to load (e.g., 'en_core_web_trf').
   # @return [Spacy::Language] The loaded spaCy language model.
   # @raise [StandardError] If the model fails to load.
-  def self.get_model(model_name)
+  def self.load_model(model_name)
     # Use self.synchronize for thread-safety provided by Mutex_m
     synchronize do
       return @loaded_models[model_name] if @loaded_models.key?(model_name)
