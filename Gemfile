@@ -42,7 +42,6 @@ gem "google-cloud-translate", "~> 3.7"
 gem "informers"
 gem "jongleur"
 gem "jsonl"
-gem "langchain"
 gem "lingua"
 gem "ohm-contrib"
 gem "ohm"
@@ -94,8 +93,6 @@ gem "mutex_m", "~> 0.3.0"
 gem "mutex", "~> 1.0"
 
 gem "pry-bond", "~> 0.0.1"
-
-gem "langchainrb", "~> 0.19.5"
 
 gem "pdf-reader", "~> 2.14"
 
