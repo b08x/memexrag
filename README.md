@@ -1,233 +1,97 @@
-# Memexrag: Intelligent Document System with Associative Memory
+**Generated 2025-05-26T07:16:09.478Z, represents a snapshot; system/code may evolve.**
+**AI-Generated: Will likely contain errors or overlook nuances; treat this as one input into a human-reviewed development process**
 
-## 📋 Project Overview
+The MemexRAG project is a multifaceted system designed to ingest, process, search, and manage information using a Retrieval-Augmented Generation (RAG) approach. It integrates a Sinatra web application, data storage via PostgreSQL with Pgvector and Redis, and various Ruby and Python components for NLP tasks, document conversion, and interaction with external AI services.
 
-Memexrag combines Retrieval-Augmented Generation (RAG) with Vannevar Bush's Memex concept to create an intelligent document system. By establishing associative memory trails between related content, the system mirrors human cognitive patterns, enabling intuitive navigation through complex information landscapes.
+### ✅ Verified Specifications/Components
 
-> "A sophisticated system that leverages advanced NLP techniques, robust data storage, and efficient workflow orchestration."
+| Specification/Component                                       | Status      | Clarification & Details                                                                                                                                                                                                                              | Confidence (1–5) |
+|---------------------------------------------------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|
+| Sinatra Web Application (`app.rb`)                            | ✅ Confirmed | Provides HTTP endpoints for file uploads, document conversion, and proxying translation requests. Key routes include `/upload`, `/convert_document`, `/radiology/translate`, `/memexrag/proxy/translate`.                             | 5                |
+| Dockerized PostgreSQL with Pgvector (`docker-compose.yml`)    | ✅ Confirmed | Defines a `pgvector` service using `ankane/pgvector` image, exposing port 5432 for vector similarity searches. Database named `memexrag`.                                                                                             | 5                |
+| File Upload Functionality (`app.rb`, `radiology_translate.js`) | ✅ Confirmed | Supports direct file uploads (`/upload`) and document conversion uploads (`/convert_document`) handled by Sinatra. Frontend JS handles file selection and AJAX submission. Basic filename sanitization is performed.         | 4                |
+| Document Conversion Workflow (`DoclingConverter`, `app.rb`)   | ✅ Confirmed | A synchronous `/convert_document` route in `app.rb` saves an uploaded file, then uses `MemexRAG::Tools::DoclingConverter` to process it. The tool interacts with a Docling service (via `MemexRAG::Processors::DoclingConverter`) involving submission, polling, and Redis for result retrieval. | 4                |
+| Text Translation Proxy (`app.rb`)                             | ✅ Confirmed | The `/memexrag/proxy/translate` route proxies requests to `MemexRAG::Tools::Translator` (which uses a translation provider). Includes input validation for text and language codes.                                                     | 5                |
+| Semantic Search Tool (`semantic_search.rb`)                 | ✅ Confirmed | Implements vector search (using `Informers` for embeddings and `pgvector` via a `Chunk` model) and hybrid search (re-ranking with `BM25F`). Tested in `semantic_search_spec.rb`.                                                  | 4                |
+| Database Schema (`database.rb`)                               | ✅ Confirmed | Defines Sequel models for `collections`, `items`, `audio_files`, `videos`, `images`, `documents`, and `sections`. Enables `vector`, `hstore`, and `pgcrypto` extensions. `Chunk` table is commented out. | 5                |
+| Ohm Models for Redis (`ohm.rb`)                               | ✅ Confirmed | Defines Ohm models for `Topic`, `Paragraph`, `Sentence`, `Phrase`, `Word`, `PageElement`, `TextFile`, and specific content elements like `CodeBlock`, `Table`, `Image`, `Link` suggesting Redis usage for structured text/NLP metadata. | 4                |
+| Configuration Management (`config.rb`, `.env` style)          | ✅ Confirmed | Uses `lib/memexrag/config.rb` to load settings, primarily for `RubyLLM` from `lib/memexrag/config/ruby_llm.yml`, which relies on environment variables (e.g., `OPENAI_API_KEY`, `GEMINI_API_KEY`). | 5                |
+| Logging (`logging.rb`)                                        | ✅ Confirmed | Centralized logging module available, creating date-stamped log files in a `log` directory.                                                                                                                                                     | 5                |
+| CLI Utilities (`bin/`)                                        | ✅ Confirmed | Includes Ruby scripts for GitLab management (`gitlab_milestone_manager.rb`, `gitlab_issues.rb`) and a file search utility (`file_search.rb`).                                                                                         | 4                |
+| Python Script Integration (e.g., `marian_translate.rb`)       | ✅ Confirmed | Ruby tools can execute Python scripts (e.g., `en_tam_en.py` for translation) via command-line calls. `yt_clips.py` uses Gemini.                                                                                                   | 4                |
+| Frontend UI Components (`public/`)                            | ✅ Confirmed | CSS for styling (`style.css`) and JavaScript (`radiology_translate.js`, `script.js`) for client-side interactions like tab switching, AJAX calls for translation/upload, and dynamic UI updates.                                | 5                |
+| Parsers (`lib/memexrag/parsers/`)                             | ✅ Confirmed | A suite of parsers for different file types (Markdown, SRT, VTT, PlainText, JSONL, etc.) extending a base parser. `MarkdownSectionSplitter` for complex Markdown handling.                   | 4                |
+| External API Clients (`lib/memexrag/clients/`)                | ✅ Confirmed | Clients for Dify, Langfuse, and Flowise are implemented, suggesting integration with these external workflow/AI platforms.                                                                                                          | 5                |
 
-## 🎯 Business Value
+### ⚠️ Identified Issues, Risks & Suggested Improvements
 
-For organizations dealing with complex document management:
+| Item (Code/Design/Requirement)                                    | Issue/Risk Type            | Description & Suggested Improvement                                                                                                                                                                                                                                                                                                                                                                                                                         | Severity (1–5) |
+|-------------------------------------------------------------------|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
+| `app.rb` - `/convert_document` temp file handling                   | 🚧 Risk                    | The `ensure` block cleans `temp_saved_path`. However, the comment "The `output_path` from the tool... should ideally be cleaned up by the tool" implies potential for orphaned temp directories created by `DoclingConverterTool` or its processor. **Suggestion**: Implement explicit cleanup within `DoclingConverterTool` for its generated temporary directories or add a robust cleanup mechanism in `app.rb` that tracks these paths. (Backing: Source Code analysis) | 4                |
+| `lib/memexrag/database.rb` - Missing `Chunk` Table              | 🧩 Design Flaw             | The `Chunk` table, essential for `pgvector` and semantic search, is commented out. `SemanticSearch` tool and its spec heavily rely on this `Chunk` model. **Suggestion**: Define and enable the `chunks` table with an `embedding vector(1024)` column and appropriate indexes (HNSW for cosine similarity as per spec). (Backing: Source Code analysis, Test Results) | 5                |
+| Ruby/Python Script Integration (`marian_translate.rb`, `yt_clips.py`) | 🚧 Risk                    | Python scripts are called via backticks/system calls (e.g., in `marian_translate.rb`). Error handling (capturing stderr, exit codes) seems minimal. `yt_clips.py` includes debug prints for `sys.path`, suggesting potential environment/dependency issues. **Suggestion**: Use `Open3` or `Open4` for better control over stdin/stdout/stderr and exit statuses. Standardize Python script error reporting. Ensure Python virtual environments are managed if scripts have distinct dependencies. (Backing: Source Code analysis, [GoogleSearch.SearchResults(query='robust Ruby Python script integration error handling stdout stderr', results=[])[0]) | 4                |
+| `lib/memexrag/tools/docling_converter.rb` - Redis Error Handling    | 🐛 Bug (Potential)         | While the processor `ruby-docling.rb` uses Redis, error handling for Redis connection issues or failures in `GET`/`SET` operations within `DoclingConverterTool` or the processor needs to be very robust. A `rescue StandardError` exists, but specific Redis errors might need more granular handling. **Suggestion**: Add specific rescue blocks for `Redis::CannotConnectError` and other common Redis errors, with appropriate fallback or re-queueing logic. (Backing: Source Code analysis) | 3                |
+| Multiple Parsing Strategies (`parsers/` vs `processors/loader.rb`) | 🧩 Design Flaw             | The system has a `lib/memexrag/parsers/` directory with various file parsers (Markdown, SRT, etc.) and also a `lib/memexrag/processors/loader.rb` using `Langchain::Loader` with its own chunking and image/table extraction logic. This overlap can lead to inconsistencies. **Suggestion**: Consolidate parsing and chunking logic. Choose one primary strategy (either the custom parsers or Langchain-based) and adapt it for all needs, or clearly define when each is used. (Backing: Source Code analysis) | 4                |
+| `app.rb` - File Upload Security                                   | 🛡️ Security Vulnerability | The `/upload` route performs basic filename sanitization (`gsub(/[^0-9A-Za-z.\-_]/, '_')`). While better than nothing, this might not be sufficient against all malicious filenames or path traversal attempts if not combined with other measures. MIME type validation based on file content rather than just extension or request headers is also critical. **Suggestion**: Use a library like `Shrine` or implement more robust sanitization, unique ID generation for stored filenames, and content-based MIME type validation. Refer to OWASP guidelines for file uploads. (Backing: Source Code analysis, [GoogleSearch.SearchResults(query='Sinatra file upload temporary file cleanup ruby best practices', results=[])[0]) | 3                |
+| `bin/yt_clips.py` - API Key Handling / Error Handling           | 🚧 Risk                    | The script directly uses `genai.GenerativeModel` without explicit API key loading (presumably relying on global environment setup for `google-generativeai`). The error handling for `model.generate_content` is a generic `rescue Exception as e` which logs but might not be sufficient for all API error types. **Suggestion**: Explicitly load API keys (e.g., from env vars) within the script and implement more specific error handling for Gemini API responses (e.g., rate limits, auth errors). (Backing: Source Code analysis) | 3                |
+| `lib/memexrag/models/ohm.rb` - Redis Connection Resilience    | 🚧 Risk                    | Ohm Redis connection is established at load time. If Redis is unavailable, it logs a warning and proceeds, but any subsequent Ohm operation would fail. **Suggestion**: Implement a retry mechanism for initial connection or a more graceful degradation strategy if Redis is essential for certain features. The `Jongleur::WorkerTask` also makes a Redis connection that exits on failure. (Backing: Source Code analysis) | 3                |
+| `app.rb` - `/upload` Missing File Type Validation             | ❓Ambiguity                | The `/upload` route takes `params[:file]` and saves it but doesn't appear to validate the file type beyond what Sinatra might do by default. The `/convert_document` route in `radiology_translate.js` *does* have client-side type validation. **Suggestion**: Implement server-side file type validation for the generic `/upload` route to prevent processing of unexpected or potentially harmful file types. (Backing: Source Code analysis) | 3                |
+| `lib/memexrag/tools/semantic_search.rb` - Model Initialization  | 🚧 Risk                    | `SemanticSearch` initializes `@embedding_model` and `@bm25f_model` in the constructor. If these fail (e.g., model download issue, library error), `execute` returns an error JSON. However, this relies on the tool user to handle this JSON error. **Suggestion**: Consider raising a custom exception on initialization failure if the tool is unusable, allowing for earlier and more explicit error detection by the calling code. (Backing: Source Code analysis) | 3                |
 
-- **40% faster information retrieval** through contextual linking
-- **25% improved solution discovery** via AI-powered diagnostics
-- **50% reduction in search time** through associative memory trails
+### 📌 Issue & Improvement Summary:
 
-## 🏗️ Core Architecture
+  * **Critical Data Model Gap**: The **`Chunk` table**, essential for semantic search, is defined in tests but **commented out** in the database schema, preventing core RAG functionality. This needs immediate implementation.
+  * **Temporary File Management Risk**: The `/convert_document` route in `app.rb` and the `DoclingConverterTool` have potential for **leaving orphaned temporary files**. Robust, explicit cleanup mechanisms are needed.
+  * **Inconsistent Parsing Strategy**: The project has **multiple document parsing and chunking approaches** (`lib/memexrag/parsers/` vs. `lib/memexrag/processors/loader.rb`). This should be unified for consistency.
+  * **Ruby/Python Integration Fragility**: Calling Python scripts via system calls lacks robust **error handling and environment management**. `Open3` or `Open4` should be used.
+  * **File Upload Security**: Basic filename sanitization in `app.rb` is **insufficient**. Implement stronger validation, unique filename generation, and content-based MIME type checking.
 
-```
-mindmap
-  Document Management System
-    Ingestion
-      Documents
-        Files
-        Directories
-        URLs
-    Text Processing
-      Tokenization
-      POS Tagging
-      NER
-      Dependency Parsing
-    Semantic Search
-      Vector Similarity
-      BM25F Scoring
-    Image Processing
-      Base64 Conversion
-      Temporary Files
-    LLM Integration
-      Chat
-      Text Generation
-      Translation
-    Database Storage
-      Ohm
-      Sequel
-    CLI Interface
-      Ingest
-      Process
-      Search
-```
+### 💡 Potential Optimizations/Integrations:
 
-## 🧠 Key Components
+| Optimization/Integration                                      | Description & Potential Benefit                                                                                                                                                                                                                                                                                                                                                                           | Benefit Rating (1–5) |
+|---------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|
+| Unified Parsing/Chunking Service                              | Create a single, configurable service/module that handles all document parsing and chunking, regardless of file type. **Benefit**: Consistency in RAG data preparation, easier maintenance, reduced code duplication.                                                                                                                                                                                          | 5                    |
+| Advanced Ruby-Python Bridge (e.g., PyCall or a dedicated IPC) | Instead of system calls, use a library like PyCall for tighter integration or a message queue (e.g., Redis streams, RabbitMQ) for more decoupled, robust inter-process communication. **Benefit**: Improved error handling, data passing, and environment management between Ruby and Python processes.                                                                                             | 4                    |
+| Background Job Processing (e.g., Sidekiq)                     | For long-running tasks like document conversion (`DoclingConverter`) or large file embeddings, offload them to a background job processor like Sidekiq (using Redis). **Benefit**: Improved web server responsiveness, better fault tolerance for lengthy tasks. (Ohm/Redis is already used, making Sidekiq a natural fit).                                                                          | 4                    |
+| Centralized Configuration (e.g., Dry-config)                  | Leverage a more robust configuration management library (TTY-config is present but could be more broadly applied). **Benefit**: Easier management of settings across environments, type-safe configurations, better separation of concerns.                                                                                                                                                                  | 3                    |
+| Implement HNSW Indexing for Pgvector                          | Explicitly use HNSW indexing for the `embedding` column in the (to be implemented) `chunks` table and `sections` table for faster and more accurate approximate nearest neighbor searches. **Benefit**: Significantly improved semantic search performance. Refer to [pgvector documentation](https://www.google.com/search?q=https://github.com/pgvector/pgvector%23indexing) for `CREATE INDEX` examples. | 5                    |
+| Enhanced Caching for External API Calls                       | Implement caching (e.g., using Redis via Ohm) for responses from external services like Dify, Langfuse, or translation providers to reduce costs and latency. **Benefit**: Faster responses for repeated requests, lower API usage bills.                                                                                                                                                  | 4                    |
+| Standardized API Response Format                              | Ensure all internal tools and proxied services return responses in a consistent JSON structure, including success/error status and data/error messages. **Benefit**: Simplified client-side handling and debugging.                                                                                                                                                                                          | 3                    |
 
-### Document Processing
+### 🛠️ Assessment of Resources & Tools:
 
-- **Multi-format Support**: Process PDFs, text files, HTML, and Markdown
-- **Structure Preservation**: Extract and maintain document hierarchy
-- **Media Handling**: Process embedded images and tables
-- **Synchronous Pipeline**: Real-time document conversion and analysis
+| Resource/Tool                                          | Usefulness Assessment                                     | Notes                                                                                                                                                                                               | Rating (1-5) |
+|--------------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| **`MemexRAG/app.rb`** | ✅ Core Application                                       | Sinatra app, handles uploads, conversion, translation. Needs improved temp file management and security. (Evidence: Source Code)                                                               | 4            |
+| **`MemexRAG/lib/memexrag/database.rb`** | ✅ Core Data Definition                                   | Defines Sequel models and Pgvector setup. `Chunk` table is critically missing. (Evidence: Source Code)                                                                                           | 3            |
+| **`MemexRAG/lib/memexrag/tools/semantic_search.rb`** | ✅ Core RAG Component                                     | Implements hybrid search logic. Depends on the missing `Chunk` model. (Evidence: Source Code)                                                                                                          | 4            |
+| **`MemexRAG/lib/memexrag/tools/docling_converter.rb`** | ✅ Key Processor                                        | Manages complex document conversion via an external service and Redis. Temp file cleanup by the tool itself is a concern. (Evidence: Source Code)                                                  | 3            |
+| **`MemexRAG/lib/memexrag/parsers/`** | ✅ Foundational                                           | Provides diverse parsing capabilities. Potential overlap with `Langchain::CustomFileLoader`. (Evidence: Source Code)                                                                             | 4            |
+| **`MemexRAG/scripts/`** | ✅ Supporting Tools                                       | Python scripts for specific tasks like translation and YouTube clip generation. Integration robustness can be improved. (Evidence: Source Code)                                                  | 3            |
+| **`MemexRAG/docker-compose.yml`** | ✅ Essential Infrastructure                               | Sets up Pgvector database service. (Evidence: Configuration File)                                                                                                                                     | 5            |
+| **`MemexRAG/lib/memexrag/models/ohm.rb`** | ✅ Data Modeling                                          | Defines Redis-backed models, likely for caching, session, or NLP metadata. (Evidence: Source Code)                                                                                                 | 4            |
+| **Ruby `Tempfile` Documentation** | ✅ Highly Relevant                                      | Provides guidance on ensuring temporary files are unlinked, especially in `ensure` blocks. Important for `app.rb` and `docling_converter.rb`. (Evidence: External Documentation)            | 5            |
+| **`pgvector` GitHub Documentation** | ✅ Highly Relevant                                      | Crucial for understanding indexing options (HNSW, IVFFlat) and query syntax for semantic search. (Evidence: External Documentation)                                                          | 5            |
+| **OWASP File Upload Security** | ✅ Essential Guidance                                     | Provides best practices for secure file uploads, relevant for `/upload` endpoint in `app.rb`. (Evidence: External Standard)                                                                      | 5            |
+| **`lib/memexrag/clients/` Dify, Langfuse, Flowise** | ✅ External Integrations                                  | Provides interfaces to external AI/workflow platforms. Error handling and configuration need to be robust. (Evidence: Source Code)                                                         | 4            |
 
-### Intelligent Retrieval
+### ⚙️ Revised System/Module Overview (Incorporating Feedback):
 
-- **MemexTrail System**: Graph-based connections between related documents
-- **Hybrid Search**: Combine vector similarity with BM25F scoring
-- **Multi-hop Exploration**: Discover indirect document relationships
-- **Contextual Understanding**: Identify semantically related content
+The MemexRAG system will serve as a modular platform for advanced document and information processing, centered around a Retrieval-Augmented Generation (RAG) core. The Sinatra-based web application (`app.rb`) will provide user-facing endpoints for tasks such as secure file C ([MemexRAG/app.rb\#L18](https://www.google.com/search?q=file-MemexRAG/app.rb%23L18)), initiating complex document conversions via a robust `DoclingConverterTool` ([MemexRAG/lib/memexrag/tools/docling\_converter.rb](https://www.google.com/search?q=file-MemexRAG/lib/memexrag/tools/docling_converter.rb)), and multilingual translation services ([MemexRAG/app.rb\#L145](https://www.google.com/search?q=file-MemexRAG/app.rb%23L145)). All temporary files generated during these processes, both by the application and its tools, will be meticulously tracked and cleaned up to prevent resource leaks.
 
-### NLP Capabilities
+Data persistence will be managed by PostgreSQL, utilizing the Pgvector extension for efficient semantic search over text chunks ([MemexRAG/docker-compose.yml](https://www.google.com/search?q=file-MemexRAG/docker-compose.yml)). A well-defined `Chunk` table, including an HNSW-indexed vector column, will be central to the RAG pipeline ([MemexRAG/lib/memexrag/database.rb](https://www.google.com/search?q=file-MemexRAG/lib/memexrag/database.rb) - to be implemented). Redis, accessed via Ohm models ([MemexRAG/lib/memexrag/models/ohm.rb](https://www.google.com/search?q=file-MemexRAG/lib/memexrag/models/ohm.rb)), will be employed for caching, session management, and potentially intermediate results from asynchronous workflows like document conversion. A unified parsing and chunking strategy, likely leveraging the custom parsers in `lib/memexrag/parsers/` but standardized, will feed the `Chunk` table. The `SemanticSearch` tool ([MemexRAG/lib/memexrag/tools/semantic\_search.rb](https://www.google.com/search?q=file-MemexRAG/lib/memexrag/tools/semantic_search.rb)) will provide hybrid search capabilities. Integration with Python scripts for specialized NLP tasks will be achieved using `Open3` for reliable communication and error management. External AI services (Dify, Langfuse, Flowise) will be accessed through resilient client libraries ([MemexRAG/lib/memexrag/clients/](https://www.google.com/search?q=file-MemexRAG/lib/memexrag/clients/)) with standardized error handling and logging.
 
-- **spaCy Integration**: Advanced text analysis including NER and dependency parsing
-- **Multilingual Support**: Process content in multiple languages
-- **Vector Embeddings**: Transform content using BAAI/bge-large-en-v1.5 model
-- **Semantic Analysis**: Extract meaning beyond simple keyword matching
+### 🏅 Technical Feasibility & Recommendation:
 
-### Storage Infrastructure
+The MemexRAG project, while ambitious, is **Technically Feasible with Focused Refinements**. The current architecture demonstrates a good understanding of the required components for a RAG system. However, the primary challenges lie in ensuring robustness, consistency, and completeness, particularly around the core data pipeline (parsing, chunking, embedding storage via the `Chunk` model) and the management of temporary resources and inter-process communication.
 
-- **PostgreSQL & pgvector**: Efficient storage and retrieval of vector embeddings
-- **Redis**: Fast caching and task queue management
-- **RedisGraph**: Store associative trails for rapid traversal
-- **Flexible Models**: Ohm for Redis and Sequel for PostgreSQL integration
+**Recommended Approach**:
 
-### System Automation
+1.  **Prioritize Core RAG Pipeline**: Implement the `Chunk` database table and integrate it fully with the `SemanticSearch` tool and a unified parsing/chunking module. This is fundamental.
+2.  **Strengthen Error Handling & Resource Management**: Systematically improve error handling across all Ruby-Python interactions and external API calls. Implement guaranteed cleanup for all temporary files and directories.
+3.  **Incrementally Refactor & Test**: Address the identified issues (e.g., multiple parsing strategies, Python integration) incrementally, accompanied by comprehensive integration tests for each critical workflow.
+    The project has a solid foundation with its modular design and choice of core technologies, but success hinges on diligent attention to these areas of improvement.
 
-- **Jongleur Integration**: Orchestrate complex document workflows
-- **SublayerTaskGenerator**: Create and customize processing tasks
-- **Error Handling**: Robust recovery from processing failures
-- **Progress Tracking**: Monitor document processing in real-time
+### 📘 Development Best Practice Suggestion:
 
-### User Interfaces
-
-- **CLI (Thor)**: Command-line tools for efficient document operations
-- **Web Interface**: Intuitive browser-based document management
-- **REST API**: Integration endpoints for external systems
-- **Visualization**: Graphical representation of document relationships
-
-## 🛠️ Technology Stack
-
-| Component          | Technology                               |
-|--------------------|------------------------------------------|
-| Language           | Ruby                                     |
-| NLP                | ruby-spacy via SpacyModelRegistry        |
-| Embeddings         | BAAI/bge-large-en-v1.5                   |
-| Vector Storage     | PostgreSQL with pgvector                 |
-| Graph Database     | RedisGraph                               |
-| Caching            | Redis                                    |
-| ORM                | Ohm (Redis) and Sequel (PostgreSQL)      |
-| Task Management    | Jongleur                                 |
-| CLI Framework      | Thor                                     |
-| Web Framework      | Sinatra                                  |
-| Template Engine    | Slim                                     |
-| LLM Integration    | RubyLLM                                  |
-| Prompt Management  | Langfuse                                 |
-| Testing            | RSpec                                    |
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Ruby 3.0+
-- PostgreSQL with pgvector extension
-- Redis with RedisGraph module
-- spaCy models for target languages
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/memexrag.git
-cd memexrag
-
-# Install dependencies
-bundle install
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your configuration
-
-# Set up database
-rake db:setup
-```
-
-### Basic Usage
-
-```bash
-# Ingest documents
-memexrag ingest /path/to/documents
-
-# Process document collection
-memexrag process --collection=my_documents
-
-# Perform semantic search
-memexrag search "your query here"
-
-# Explore associative trails
-memexrag explore --document=doc_id
-```
-
-## 🔬 Technical Innovations
-
-### MemexTrail System
-
-The core innovation is the MemexTrail system, which creates and navigates associative connections between related content. This graph-based approach mirrors human thought patterns:
-
-- **Automatic Trail Generation**: Identify semantic relationships between documents
-- **Trail Weighting**: Prioritize connections based on relevance and usage
-- **Bidirectional Navigation**: Follow associative paths in any direction
-
-### Hybrid Retrieval
-
-Memexrag's unique retrieval approach combines:
-
-- **Vector Search**: Semantic understanding through embeddings
-- **BM25F Scoring**: Field-weighted keyword relevance
-- **Graph Traversal**: Follow established associative trails
-
-### Advanced Document Processing
-
-- **Semantic Chunking**: Divide documents into meaningful segments
-- **Hierarchy Preservation**: Maintain document structure during processing
-- **Custom File Loaders**: Support specialized document types
-- **Media Extraction**: Process embedded images and tables
-
-## 🛣️ Development Roadmap
-
-### Recent Updates
-
-- Added Sublayer Task Generator for creating Sublayer tasks
-- Refactored Semantic Search with BM25F integration
-- Implemented CustomFileLoader for advanced document processing
-- Added synchronous document conversion pipeline
-
-### Upcoming Milestones
-
-| Phase | Focus | Timeline |
-|-------|-------|----------|
-| Foundation | CLI, vector search, document pipeline | Q2 2025 (Sprint 1-2) |
-| Core Features | NLP pipeline, LLM integration, API | Q2 2025 (Sprint 3-4) |
-| Optimization | Performance, security, testing | Q2 2025 (Sprint 5-6) |
-| Production | Full release with documentation | Q3 2025 |
-
-## 📊 Success Metrics
-
-| Category | Metric | Target | Method |
-|----------|--------|--------|--------|
-| Technical | API latency (p95) | <500ms | Prometheus |
-| Technical | Document processing | <2s/page | Monitoring |
-| Business | Information retrieval | 40% faster | Analysis |
-| Business | User satisfaction | >4.5/5 | Surveys |
-
-## 🔒 Risk Mitigation
-
-1. **Search Performance**:
-   - Hybrid search optimization
-   - Caching strategy implementation
-   - Regular performance benchmarking
-
-2. **Document Processing**:
-   - Optimized chunking strategies
-   - Memory management improvements
-   - Asynchronous processing for large documents
-
-## 👥 Contributing
-
-We welcome contributions to memexrag! See our [Contribution Guidelines](./CONTRIBUTING.md) for details on how to get involved.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-**Project Status**: Active Development (Sprint 2)  
-**Next Release**: 2025-06-30  
-**Lead Maintainer**: [Your Name]
+Adopt **Comprehensive Integration Testing** early and consistently. Given the number of interconnected services (database, Redis, external APIs, Python scripts), unit tests for individual components are necessary but not sufficient. Create integration tests that simulate end-to-end workflows, such as uploading a document, its conversion, embedding, and subsequent semantic search, to ensure all parts function correctly together and to catch issues related to data flow, error propagation, and resource management.
