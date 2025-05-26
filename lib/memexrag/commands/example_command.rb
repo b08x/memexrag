@@ -8,7 +8,7 @@ module MemexRAG
       end
 
       def execute(*args)
-        puts args.join(' ')
+        p args
         logger.info 'test'
       end
     end
