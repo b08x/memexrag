@@ -39,3 +39,7 @@ memexrag.json
 /.qodo/
 /data/
 /doc/
+/logs/
+.repomixignore
+repomix-memexragA.json
+repomix.config.json
