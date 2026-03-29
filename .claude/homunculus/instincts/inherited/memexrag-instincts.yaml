@@ -1,0 +1,609 @@
+# Instincts generated from https://github.com/b08x/memexrag
+# Generated: 2026-03-29T12:57:04.612Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: memexrag-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Commit Length
+
+## Action
+
+Write moderate-length commit messages (~54 characters)
+
+## Evidence
+
+- Average commit message length: 54 chars
+- Based on 50 commits
+
+---
+id: memexrag-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Naming Files
+
+## Action
+
+Use snake_case naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: snake_case
+
+---
+id: memexrag-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: memexrag-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: memexrag-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: memexrag-workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~19x per month
+- Files: **/*.test.*
+
+---
+id: memexrag-workflow-refactoring
+trigger: "when refactoring code"
+confidence: 0.75
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Workflow Refactoring
+
+## Action
+
+Follow the refactoring workflow:
+1. Ensure tests pass before refactor
+2. Refactor code structure
+3. Verify tests still pass
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~5x per month
+- Files: src/**/*
+
+---
+id: memexrag-workflow-add-or-update-agent-orchestration
+trigger: "when doing add or update agent orchestration"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Workflow Add Or Update Agent Orchestration
+
+## Action
+
+Follow the add-or-update-agent-orchestration workflow:
+1. Edit or add files in lib/memexrag/agents/ (e.g., agent.rb, orch.rb, multi-agent-workflow-gen.rb)
+2. Edit or add files in lib/memexrag/clients/ (e.g., langfuse_client.rb, dify_client.rb)
+3. Optionally update lib/memexrag/commands/ (e.g., promptlist.rb, ingest.rb)
+4. Optionally update lib/memexrag/processors/multilingual.rb or related processor files
+5. Update or add documentation or markdown files if needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: lib/memexrag/agents/agent.rb, lib/memexrag/agents/orch.rb, lib/memexrag/agents/multi-agent-workflow-gen.rb
+
+---
+id: memexrag-workflow-add-or-refactor-database-models-and-schema
+trigger: "when doing add or refactor database models and schema"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Workflow Add Or Refactor Database Models And Schema
+
+## Action
+
+Follow the add-or-refactor-database-models-and-schema workflow:
+1. Edit or add files in lib/memexrag/models/ (e.g., sequel/*.rb, ohm/*.rb, document.rb, fileobject.rb, etc.)
+2. Edit lib/memexrag/database.rb to update schema or connection logic
+3. Optionally update Gemfile if new gems are needed
+4. Update or remove related tools or commands if model structure changes
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: lib/memexrag/models/sequel/*.rb, lib/memexrag/models/ohm/*.rb, lib/memexrag/models/document.rb
+
+---
+id: memexrag-workflow-add-or-enhance-file-parsers-and-processors
+trigger: "when doing add or enhance file parsers and processors"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Workflow Add Or Enhance File Parsers And Processors
+
+## Action
+
+Follow the add-or-enhance-file-parsers-and-processors workflow:
+1. Add or edit files in lib/memexrag/parsers/ (e.g., markdown.rb, markdown/section_splitter.rb, json.rb, etc.)
+2. Add or edit files in lib/memexrag/processors/ (e.g., ruby-docling.rb, multilingual.rb, loader.rb)
+3. Optionally update lib/memexrag/parser.rb to register new parsers
+4. Update or add test or documentation files if needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: lib/memexrag/parsers/*.rb, lib/memexrag/parsers/markdown/*.rb, lib/memexrag/processors/*.rb
+
+---
+id: memexrag-workflow-add-or-update-cli-commands-and-tools
+trigger: "when doing add or update cli commands and tools"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Workflow Add Or Update Cli Commands And Tools
+
+## Action
+
+Follow the add-or-update-cli-commands-and-tools workflow:
+1. Add or edit files in lib/memexrag/commands/ (e.g., converse.rb, ingest.rb, add.rb, example_command.rb)
+2. Add or edit files in lib/memexrag/tools/ (e.g., semantic_search.rb, spacy_nlp.rb, docling_converter.rb, marian_translate.rb)
+3. Edit lib/memexrag/cli.rb or lib/memexrag/command.rb to register new commands
+4. Optionally update bin/ scripts if new CLI entrypoints are needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: lib/memexrag/commands/*.rb, lib/memexrag/tools/*.rb, lib/memexrag/cli.rb
+
+---
+id: memexrag-workflow-documentation-and-readme-updates
+trigger: "when doing documentation and readme updates"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/b08x/memexrag
+---
+
+# Memexrag Workflow Documentation And Readme Updates
+
+## Action
+
+Follow the documentation-and-readme-updates workflow:
+1. Edit README.md or other top-level markdown files
+2. Add or update files in doc/ or AGENTS.md
+3. Optionally update inline documentation in code files
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: README.md, doc/*.md, AGENTS.md
+
+---
+id: memexrag-instinct-naming-files
+trigger: "When creating or renaming a file"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Naming Files
+
+## Action
+
+Use snake_case for file names
+
+## Evidence
+
+- Pattern in file names: lib/memexrag/agents/agent.rb
+- lib/memexrag/clients/langfuse_client.rb
+
+---
+id: memexrag-instinct-naming-functions
+trigger: "When defining a function or method"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Naming Functions
+
+## Action
+
+Use camelCase for function and method names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.functions
+
+---
+id: memexrag-instinct-naming-classes
+trigger: "When defining a class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Naming Classes
+
+## Action
+
+Use PascalCase for class names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.classes
+
+---
+id: memexrag-instinct-naming-constants
+trigger: "When defining a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Naming Constants
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constants
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.constants
+
+---
+id: memexrag-instinct-import-style
+trigger: "When importing modules or files"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Import Style
+
+## Action
+
+Use relative imports
+
+## Evidence
+
+- Pattern in codeStyle.importStyle
+
+---
+id: memexrag-instinct-export-style
+trigger: "When exporting modules or classes"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in codeStyle.exportStyle
+
+---
+id: memexrag-instinct-testing-location
+trigger: "When adding or updating tests"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Testing Location
+
+## Action
+
+Place test files in a separate test directory
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation
+
+---
+id: memexrag-instinct-testing-feature
+trigger: "When developing a new feature"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Testing Feature
+
+## Action
+
+Add or update tests for the feature after implementation
+
+## Evidence
+
+- feature-development workflow: Add tests for feature after implementation
+
+---
+id: memexrag-instinct-testing-refactor
+trigger: "When refactoring code"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Testing Refactor
+
+## Action
+
+Ensure tests pass before and after refactoring
+
+## Evidence
+
+- refactoring workflow: Ensure tests pass before and after refactor
+
+---
+id: memexrag-instinct-git-commit-prefix
+trigger: "When writing a commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Git Commit Prefix
+
+## Action
+
+Prefix commit messages with type (e.g., feat, chore, docs, refactor)
+
+## Evidence
+
+- Pattern in commits.prefixes
+- Examples: 'feat: ...', 'chore: ...', 'docs: ...'
+
+---
+id: memexrag-instinct-git-commit-length
+trigger: "When writing a commit message"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Git Commit Length
+
+## Action
+
+Keep commit messages concise (around 54 characters on average)
+
+## Evidence
+
+- commits.averageLength: 54
+
+---
+id: memexrag-instinct-git-commit-sequence-feature
+trigger: "When implementing a new feature"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Git Commit Sequence Feature
+
+## Action
+
+Sequence commits as: feature implementation → tests → documentation
+
+## Evidence
+
+- feature-development workflow: commitSequence
+
+---
+id: memexrag-instinct-workflow-add-agent-orchestration
+trigger: "When introducing or updating agent orchestration, Langfuse integration, or multi-agent workflow generation"
+confidence: 0.92
+domain: workflow
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Workflow Add Agent Orchestration
+
+## Action
+
+Edit or add files in agents/, clients/, optionally commands/ and processors/, and update documentation if needed
+
+## Evidence
+
+- add-or-update-agent-orchestration workflow
+- Example files: lib/memexrag/agents/agent.rb, lib/memexrag/clients/langfuse_client.rb
+
+---
+id: memexrag-instinct-workflow-add-model
+trigger: "When adding new data types, migrating models, or refactoring the database structure"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Workflow Add Model
+
+## Action
+
+Edit or add files in models/, update database.rb, optionally update Gemfile and related tools/commands
+
+## Evidence
+
+- add-or-refactor-database-models-and-schema workflow
+- Example files: lib/memexrag/models/sequel/*.rb, lib/memexrag/database.rb
+
+---
+id: memexrag-instinct-workflow-add-parser
+trigger: "When supporting a new file type, improving chunking, or adding new processing capabilities"
+confidence: 0.88
+domain: workflow
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Workflow Add Parser
+
+## Action
+
+Edit or add files in parsers/ and processors/, optionally update parser.rb, and add tests or docs if needed
+
+## Evidence
+
+- add-or-enhance-file-parsers-and-processors workflow
+- Example files: lib/memexrag/parsers/*.rb, lib/memexrag/processors/*.rb
+
+---
+id: memexrag-instinct-workflow-add-cli-command
+trigger: "When adding a new CLI command, tool, or enhancing the CLI interface"
+confidence: 0.87
+domain: workflow
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Workflow Add Cli Command
+
+## Action
+
+Edit or add files in commands/, tools/, update cli.rb or command.rb, and optionally update bin/ scripts
+
+## Evidence
+
+- add-or-update-cli-commands-and-tools workflow
+- Example files: lib/memexrag/commands/*.rb, bin/*
+
+---
+id: memexrag-instinct-workflow-update-docs
+trigger: "When documenting new features, updating project vision, or adding usage guides"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: b08x/memexrag
+---
+
+# Memexrag Instinct Workflow Update Docs
+
+## Action
+
+Edit README.md, doc/ or AGENTS.md, and optionally update inline documentation
+
+## Evidence
+
+- documentation-and-readme-updates workflow
+- Example files: README.md, doc/*.md
+
